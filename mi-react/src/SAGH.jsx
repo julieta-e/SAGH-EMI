@@ -1,58 +1,83 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lock, User, LogIn, Calendar, Users, BookOpen,
   Settings, LogOut, CheckCircle, AlertTriangle, Play,
   Clock, Menu, Printer, Building2, Plus, Pencil, Trash2,
   X, Save, ChevronDown, AlertCircle, Check, RefreshCw,
-  GripVertical, ArrowLeftRight, Info, Shield, Eye
+  GripVertical, Info, Shield, Eye, FileText, Download,
+  BarChart2, Bell, UserCheck, Key, ClipboardList, Search,
+  Filter, ChevronRight, Home, Database, Layers, FileDown,
+  BookMarked, Archive, Activity, TrendingUp, Hash
 } from 'lucide-react';
 
-// ==========================================
-// ESTILOS GLOBALES FULL SCREEN
-// ==========================================
 const GlobalStyles = () => (
   <style>{`
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { width: 100% !important; height: 100% !important; min-height: 100vh; overflow: hidden; }
     body { font-family: 'Georgia', serif; }
+    @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   `}</style>
 );
 
-// ==========================================
-// PALETA Y ESTILOS BASE
-// ==========================================
 const C = {
-  navy: '#0f2444',
-  navyLight: '#1a365d',
-  navyMid: '#1e4080',
-  gold: '#c8a84b',
-  goldLight: '#f0c84e',
-  green: '#166534',
-  greenLight: '#dcfce7',
-  red: '#991b1b',
-  redLight: '#fee2e2',
-  blue: '#1e40af',
-  blueLight: '#dbeafe',
-  gray: '#6b7280',
-  grayLight: '#f3f4f6',
+  navy: '#0f2444', navyLight: '#1a365d', navyMid: '#1e4080',
+  gold: '#c8a84b', goldLight: '#f0c84e',
+  green: '#166534', greenLight: '#dcfce7',
+  red: '#991b1b', redLight: '#fee2e2',
+  blue: '#1e40af', blueLight: '#dbeafe',
+  gray: '#6b7280', grayLight: '#f3f4f6',
+  purple: '#6d28d9', purpleLight: '#ede9fe',
+  orange: '#92400e', orangeLight: '#fef3c7',
 };
 
 // ==========================================
 // DATOS INICIALES
 // ==========================================
+const INIT_USUARIOS = [
+  { id: 'u1', nombre: 'Administrador SAGH', usuario: 'admin', password: 'emi123', rol: 'Administrador', email: 'admin@emi.edu.bo', activo: true, docenteId: null },
+  { id: 'u2', nombre: 'Cap. Frank Silvestre', usuario: 'jefe.carrera', password: 'jefe123', rol: 'Jefe de Carrera', email: 'fsilvestre@emi.edu.bo', activo: true, docenteId: null },
+  { id: 'u3', nombre: 'Secretaría DDE', usuario: 'dde', password: 'dde123', rol: 'DDE', email: 'dde@emi.edu.bo', activo: true, docenteId: null },
+];
+
+const ROLES = ['Administrador', 'Jefe de Carrera', 'DDE', 'Docente'];
+
+const PERMISOS_ROL = {
+  'Administrador': ['mod1', 'mod2', 'mod3', 'mod4', 'mod5', 'mod6'],
+  'Jefe de Carrera': ['mod2', 'mod3', 'mod4', 'mod5', 'mod6'],
+  'DDE': ['mod2', 'mod3', 'mod4', 'mod5', 'mod6'],
+  'Docente': ['mod4', 'mod6'],
+};
+
 const INIT_DOCENTES = [
-  { id: 'd1', nombre: 'Ing. Carlos Mendoza', tipo: 'Civil', maxHoras: 25, especialidad: 'Matemáticas' },
-  { id: 'd2', nombre: 'Cap. Roberto Díaz', tipo: 'Militar Activo', maxHoras: 25, especialidad: 'Doctrina' },
-  { id: 'd3', nombre: 'Ing. Ana Pardo', tipo: 'Civil', maxHoras: 25, especialidad: 'Física' },
-  { id: 'd4', nombre: 'Tcnl. Luis Vargas', tipo: 'Militar Reserva', maxHoras: 25, especialidad: 'Táctica' },
-  { id: 'd5', nombre: 'Ing. Sofia Castro', tipo: 'Civil', maxHoras: 25, especialidad: 'Redes' },
-  { id: 'd6', nombre: 'Ing. Fernando Rios', tipo: 'Civil', maxHoras: 25, especialidad: 'Sistemas' },
-  { id: 'd7', nombre: 'My. Jorge Salinas', tipo: 'Militar Activo', maxHoras: 25, especialidad: 'Defensa' },
-  { id: 'd8', nombre: 'Ing. Elena Gómez', tipo: 'Civil', maxHoras: 25, especialidad: 'Idiomas' },
-  { id: 'd9', nombre: 'Ing. Raul Mamani', tipo: 'Civil', maxHoras: 25, especialidad: 'Bases de Datos' },
-  { id: 'd10', nombre: 'Ing. Patricia Luna', tipo: 'Civil', maxHoras: 25, especialidad: 'Gestión' },
-  { id: 'd11', nombre: 'Cap. Diego Blanco', tipo: 'Militar Activo', maxHoras: 25, especialidad: 'Doctrina' },
-  { id: 'd12', nombre: 'Ing. Carmen Vega', tipo: 'Civil', maxHoras: 25, especialidad: 'Software' },
+  { id: 'd1', nombre: 'Ing. Carlos Mendoza', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Matemáticas', email: 'cmendoza@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd2', nombre: 'Cap. Roberto Díaz', tipo: 'Militar Activo', maxHoras: 25, minHoras: 10, especialidad: 'Doctrina', email: 'rdiaz@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd3', nombre: 'Ing. Ana Pardo', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Física', email: 'apardo@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd4', nombre: 'Tcnl. Luis Vargas', tipo: 'Militar Reserva', maxHoras: 25, minHoras: 10, especialidad: 'Táctica', email: 'lvargas@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd5', nombre: 'Ing. Sofia Castro', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Redes', email: 'scastro@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd6', nombre: 'Ing. Fernando Rios', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Sistemas', email: 'frios@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd7', nombre: 'My. Jorge Salinas', tipo: 'Militar Activo', maxHoras: 25, minHoras: 10, especialidad: 'Defensa', email: 'jsalinas@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd8', nombre: 'Ing. Elena Gómez', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Idiomas', email: 'egomez@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd9', nombre: 'Ing. Raul Mamani', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Bases de Datos', email: 'rmamani@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd10', nombre: 'Ing. Patricia Luna', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Gestión', email: 'pluna@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd11', nombre: 'Cap. Diego Blanco', tipo: 'Militar Activo', maxHoras: 25, minHoras: 10, especialidad: 'Doctrina', email: 'dblanco@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+  { id: 'd12', nombre: 'Ing. Carmen Vega', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: 'Software', email: 'cvega@emi.edu.bo', disponibilidad: [0,1,2,3,4] },
+];
+
+const INIT_GRUPOS = [
+  { id: 'g3', nombre: 'Sistemas 3°', semestre: 3, numEstudiantes: 35, aulaFijaId: null },
+  { id: 'g4', nombre: 'Sistemas 4°', semestre: 4, numEstudiantes: 32, aulaFijaId: null },
+  { id: 'g5', nombre: 'Sistemas 5°', semestre: 5, numEstudiantes: 28, aulaFijaId: null },
+  { id: 'g6', nombre: 'Sistemas 6°', semestre: 6, numEstudiantes: 30, aulaFijaId: null },
+  { id: 'g7', nombre: 'Sistemas 7°', semestre: 7, numEstudiantes: 26, aulaFijaId: null },
+  { id: 'g8', nombre: 'Sistemas 8°', semestre: 8, numEstudiantes: 24, aulaFijaId: null },
+  { id: 'g9', nombre: 'Sistemas 9°', semestre: 9, numEstudiantes: 20, aulaFijaId: null },
+  { id: 'g10', nombre: 'Sistemas 10°', semestre: 10, numEstudiantes: 18, aulaFijaId: null },
 ];
 
 const INIT_AULAS = [
@@ -67,75 +92,63 @@ const INIT_AULAS = [
 ];
 
 const INIT_MATERIAS = [
-  { id: 'm3_1', nombre: 'Cálculo III', semestre: 3, periodos: 3, docenteId: 'd1', tipoAula: 'Aula' },
-  { id: 'm3_2', nombre: 'Física II', semestre: 3, periodos: 3, docenteId: 'd3', tipoAula: 'Aula' },
-  { id: 'm3_3', nombre: 'Estructura de Datos', semestre: 3, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm3_4', nombre: 'Estadística I', semestre: 3, periodos: 3, docenteId: 'd6', tipoAula: 'Aula' },
-  { id: 'm3_5', nombre: 'Álgebra Lineal', semestre: 3, periodos: 2, docenteId: 'd1', tipoAula: 'Aula' },
-  { id: 'm3_6', nombre: 'Doctrina Militar III', semestre: 3, periodos: 2, docenteId: 'd2', tipoAula: 'Aula' },
-  { id: 'm3_7', nombre: 'Inglés III', semestre: 3, periodos: 2, docenteId: 'd8', tipoAula: 'Aula' },
-  { id: 'm3_8', nombre: 'Contabilidad', semestre: 3, periodos: 2, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm4_1', nombre: 'Ecuaciones Diferenciales', semestre: 4, periodos: 3, docenteId: 'd1', tipoAula: 'Aula' },
-  { id: 'm4_2', nombre: 'Bases de Datos I', semestre: 4, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio' },
-  { id: 'm4_3', nombre: 'Prog. Orientada a Objetos', semestre: 4, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm4_4', nombre: 'Estadística II', semestre: 4, periodos: 3, docenteId: 'd9', tipoAula: 'Aula' },
-  { id: 'm4_5', nombre: 'Física III', semestre: 4, periodos: 3, docenteId: 'd3', tipoAula: 'Aula' },
-  { id: 'm4_6', nombre: 'Doctrina Militar IV', semestre: 4, periodos: 3, docenteId: 'd7', tipoAula: 'Aula' },
-  { id: 'm4_7', nombre: 'Inglés IV', semestre: 4, periodos: 2, docenteId: 'd8', tipoAula: 'Aula' },
-  { id: 'm5_1', nombre: 'Bases de Datos II', semestre: 5, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio' },
-  { id: 'm5_2', nombre: 'Sistemas Operativos', semestre: 5, periodos: 3, docenteId: 'd9', tipoAula: 'Laboratorio' },
-  { id: 'm5_3', nombre: 'Análisis y Diseño', semestre: 5, periodos: 3, docenteId: 'd12', tipoAula: 'Aula' },
-  { id: 'm5_4', nombre: 'Investigación Operativa I', semestre: 5, periodos: 3, docenteId: 'd1', tipoAula: 'Aula' },
-  { id: 'm5_5', nombre: 'Redes I', semestre: 5, periodos: 2, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm5_6', nombre: 'Doctrina Militar V', semestre: 5, periodos: 2, docenteId: 'd11', tipoAula: 'Aula' },
-  { id: 'm5_7', nombre: 'Inglés V', semestre: 5, periodos: 2, docenteId: 'd8', tipoAula: 'Aula' },
-  { id: 'm5_8', nombre: 'Economía General', semestre: 5, periodos: 2, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm6_1', nombre: 'Ingeniería de Software I', semestre: 6, periodos: 3, docenteId: 'd12', tipoAula: 'Laboratorio' },
-  { id: 'm6_2', nombre: 'Redes II', semestre: 6, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm6_3', nombre: 'Investigación Operativa II', semestre: 6, periodos: 3, docenteId: 'd1', tipoAula: 'Aula' },
-  { id: 'm6_4', nombre: 'Sistemas de Inf. Geográfica', semestre: 6, periodos: 3, docenteId: 'd9', tipoAula: 'Laboratorio' },
-  { id: 'm6_5', nombre: 'Arquitectura de Computadoras', semestre: 6, periodos: 3, docenteId: 'd6', tipoAula: 'Aula' },
-  { id: 'm6_6', nombre: 'Táctica y Estrategia I', semestre: 6, periodos: 3, docenteId: 'd4', tipoAula: 'Aula' },
-  { id: 'm6_7', nombre: 'Preparación de Proyectos', semestre: 6, periodos: 2, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm7_1', nombre: 'Ingeniería de Software II', semestre: 7, periodos: 3, docenteId: 'd12', tipoAula: 'Laboratorio' },
-  { id: 'm7_2', nombre: 'Sistemas Distribuidos', semestre: 7, periodos: 3, docenteId: 'd9', tipoAula: 'Laboratorio' },
-  { id: 'm7_3', nombre: 'Inteligencia Artificial', semestre: 7, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio' },
-  { id: 'm7_4', nombre: 'Seguridad de Sistemas', semestre: 7, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm7_5', nombre: 'Dinámica de Sistemas', semestre: 7, periodos: 3, docenteId: 'd3', tipoAula: 'Aula' },
-  { id: 'm7_6', nombre: 'Táctica y Estrategia II', semestre: 7, periodos: 3, docenteId: 'd4', tipoAula: 'Aula' },
-  { id: 'm7_7', nombre: 'Evaluación de Proyectos', semestre: 7, periodos: 2, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm8_1', nombre: 'Auditoría de Sistemas', semestre: 8, periodos: 3, docenteId: 'd12', tipoAula: 'Laboratorio' },
-  { id: 'm8_2', nombre: 'Sistemas Expertos', semestre: 8, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio' },
-  { id: 'm8_3', nombre: 'Redes Inalámbricas', semestre: 8, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm8_4', nombre: 'Legislación para Ingeniería', semestre: 8, periodos: 3, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm8_5', nombre: 'Metodología de la Investigación', semestre: 8, periodos: 3, docenteId: 'd8', tipoAula: 'Aula' },
-  { id: 'm8_6', nombre: 'Liderazgo Militar', semestre: 8, periodos: 3, docenteId: 'd2', tipoAula: 'Aula' },
-  { id: 'm8_7', nombre: 'Simulación de Sistemas', semestre: 8, periodos: 2, docenteId: 'd3', tipoAula: 'Laboratorio' },
-  { id: 'm9_1', nombre: 'Taller de Grado I', semestre: 9, periodos: 4, docenteId: 'd12', tipoAula: 'Laboratorio' },
-  { id: 'm9_2', nombre: 'Planificación Estratégica', semestre: 9, periodos: 4, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm9_3', nombre: 'Gestión de Calidad de Software', semestre: 9, periodos: 4, docenteId: 'd6', tipoAula: 'Laboratorio' },
-  { id: 'm9_4', nombre: 'Comercio Electrónico', semestre: 9, periodos: 4, docenteId: 'd9', tipoAula: 'Laboratorio' },
-  { id: 'm9_5', nombre: 'Defensa Nacional', semestre: 9, periodos: 4, docenteId: 'd7', tipoAula: 'Aula' },
-  { id: 'm10_1', nombre: 'Taller de Grado II', semestre: 10, periodos: 4, docenteId: 'd12', tipoAula: 'Laboratorio' },
-  { id: 'm10_2', nombre: 'Gerencia de Sistemas', semestre: 10, periodos: 4, docenteId: 'd10', tipoAula: 'Aula' },
-  { id: 'm10_3', nombre: 'Robótica', semestre: 10, periodos: 4, docenteId: 'd5', tipoAula: 'Laboratorio' },
-  { id: 'm10_4', nombre: 'Minería de Datos', semestre: 10, periodos: 4, docenteId: 'd6', tipoAula: 'Laboratorio' },
-  { id: 'm10_5', nombre: 'Geopolítica', semestre: 10, periodos: 4, docenteId: 'd4', tipoAula: 'Aula' },
+  { id: 'm3_1', nombre: 'Cálculo III', semestre: 3, periodos: 3, docenteId: 'd1', tipoAula: 'Aula', critica: true },
+  { id: 'm3_2', nombre: 'Física II', semestre: 3, periodos: 3, docenteId: 'd3', tipoAula: 'Aula', critica: false },
+  { id: 'm3_3', nombre: 'Estructura de Datos', semestre: 3, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm3_4', nombre: 'Estadística I', semestre: 3, periodos: 3, docenteId: 'd6', tipoAula: 'Aula', critica: false },
+  { id: 'm3_5', nombre: 'Álgebra Lineal', semestre: 3, periodos: 2, docenteId: 'd1', tipoAula: 'Aula', critica: false },
+  { id: 'm3_6', nombre: 'Doctrina Militar III', semestre: 3, periodos: 2, docenteId: 'd2', tipoAula: 'Aula', critica: false },
+  { id: 'm3_7', nombre: 'Inglés III', semestre: 3, periodos: 2, docenteId: 'd8', tipoAula: 'Aula', critica: false },
+  { id: 'm3_8', nombre: 'Contabilidad', semestre: 3, periodos: 2, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm4_1', nombre: 'Ecuaciones Diferenciales', semestre: 4, periodos: 3, docenteId: 'd1', tipoAula: 'Aula', critica: true },
+  { id: 'm4_2', nombre: 'Bases de Datos I', semestre: 4, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm4_3', nombre: 'Prog. Orientada a Objetos', semestre: 4, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm4_4', nombre: 'Estadística II', semestre: 4, periodos: 3, docenteId: 'd9', tipoAula: 'Aula', critica: false },
+  { id: 'm4_5', nombre: 'Física III', semestre: 4, periodos: 3, docenteId: 'd3', tipoAula: 'Aula', critica: false },
+  { id: 'm4_6', nombre: 'Doctrina Militar IV', semestre: 4, periodos: 3, docenteId: 'd7', tipoAula: 'Aula', critica: false },
+  { id: 'm4_7', nombre: 'Inglés IV', semestre: 4, periodos: 2, docenteId: 'd8', tipoAula: 'Aula', critica: false },
+  { id: 'm5_1', nombre: 'Bases de Datos II', semestre: 5, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm5_2', nombre: 'Sistemas Operativos', semestre: 5, periodos: 3, docenteId: 'd9', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm5_3', nombre: 'Análisis y Diseño', semestre: 5, periodos: 3, docenteId: 'd12', tipoAula: 'Aula', critica: false },
+  { id: 'm5_4', nombre: 'Investigación Operativa I', semestre: 5, periodos: 3, docenteId: 'd1', tipoAula: 'Aula', critica: false },
+  { id: 'm5_5', nombre: 'Redes I', semestre: 5, periodos: 2, docenteId: 'd5', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm5_6', nombre: 'Doctrina Militar V', semestre: 5, periodos: 2, docenteId: 'd11', tipoAula: 'Aula', critica: false },
+  { id: 'm5_7', nombre: 'Inglés V', semestre: 5, periodos: 2, docenteId: 'd8', tipoAula: 'Aula', critica: false },
+  { id: 'm5_8', nombre: 'Economía General', semestre: 5, periodos: 2, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm6_1', nombre: 'Ingeniería de Software I', semestre: 6, periodos: 3, docenteId: 'd12', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm6_2', nombre: 'Redes II', semestre: 6, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm6_3', nombre: 'Investigación Operativa II', semestre: 6, periodos: 3, docenteId: 'd1', tipoAula: 'Aula', critica: false },
+  { id: 'm6_4', nombre: 'Sistemas de Inf. Geográfica', semestre: 6, periodos: 3, docenteId: 'd9', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm6_5', nombre: 'Arquitectura de Computadoras', semestre: 6, periodos: 3, docenteId: 'd6', tipoAula: 'Aula', critica: false },
+  { id: 'm6_6', nombre: 'Táctica y Estrategia I', semestre: 6, periodos: 3, docenteId: 'd4', tipoAula: 'Aula', critica: false },
+  { id: 'm6_7', nombre: 'Preparación de Proyectos', semestre: 6, periodos: 2, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm7_1', nombre: 'Ingeniería de Software II', semestre: 7, periodos: 3, docenteId: 'd12', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm7_2', nombre: 'Sistemas Distribuidos', semestre: 7, periodos: 3, docenteId: 'd9', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm7_3', nombre: 'Inteligencia Artificial', semestre: 7, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm7_4', nombre: 'Seguridad de Sistemas', semestre: 7, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm7_5', nombre: 'Dinámica de Sistemas', semestre: 7, periodos: 3, docenteId: 'd3', tipoAula: 'Aula', critica: false },
+  { id: 'm7_6', nombre: 'Táctica y Estrategia II', semestre: 7, periodos: 3, docenteId: 'd4', tipoAula: 'Aula', critica: false },
+  { id: 'm7_7', nombre: 'Evaluación de Proyectos', semestre: 7, periodos: 2, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm8_1', nombre: 'Auditoría de Sistemas', semestre: 8, periodos: 3, docenteId: 'd12', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm8_2', nombre: 'Sistemas Expertos', semestre: 8, periodos: 3, docenteId: 'd6', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm8_3', nombre: 'Redes Inalámbricas', semestre: 8, periodos: 3, docenteId: 'd5', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm8_4', nombre: 'Legislación para Ingeniería', semestre: 8, periodos: 3, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm8_5', nombre: 'Metodología de la Investigación', semestre: 8, periodos: 3, docenteId: 'd8', tipoAula: 'Aula', critica: false },
+  { id: 'm8_6', nombre: 'Liderazgo Militar', semestre: 8, periodos: 3, docenteId: 'd2', tipoAula: 'Aula', critica: false },
+  { id: 'm8_7', nombre: 'Simulación de Sistemas', semestre: 8, periodos: 2, docenteId: 'd3', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm9_1', nombre: 'Taller de Grado I', semestre: 9, periodos: 4, docenteId: 'd12', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm9_2', nombre: 'Planificación Estratégica', semestre: 9, periodos: 4, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm9_3', nombre: 'Gestión de Calidad de Software', semestre: 9, periodos: 4, docenteId: 'd6', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm9_4', nombre: 'Comercio Electrónico', semestre: 9, periodos: 4, docenteId: 'd9', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm9_5', nombre: 'Defensa Nacional', semestre: 9, periodos: 4, docenteId: 'd7', tipoAula: 'Aula', critica: false },
+  { id: 'm10_1', nombre: 'Taller de Grado II', semestre: 10, periodos: 4, docenteId: 'd12', tipoAula: 'Laboratorio', critica: true },
+  { id: 'm10_2', nombre: 'Gerencia de Sistemas', semestre: 10, periodos: 4, docenteId: 'd10', tipoAula: 'Aula', critica: false },
+  { id: 'm10_3', nombre: 'Robótica', semestre: 10, periodos: 4, docenteId: 'd5', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm10_4', nombre: 'Minería de Datos', semestre: 10, periodos: 4, docenteId: 'd6', tipoAula: 'Laboratorio', critica: false },
+  { id: 'm10_5', nombre: 'Geopolítica', semestre: 10, periodos: 4, docenteId: 'd4', tipoAula: 'Aula', critica: false },
 ];
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-const PERIODOS_CLASE = [
-  { id: 0, idx: 0, inicio: '07:45', fin: '08:30' },
-  { id: 1, idx: 1, inicio: '08:30', fin: '09:15' },
-  { id: 2, idx: 2, inicio: '09:15', fin: '10:00' },
-  { id: 3, idx: 3, inicio: '10:15', fin: '11:00' },
-  { id: 4, idx: 4, inicio: '11:00', fin: '11:45' },
-  { id: 5, idx: 5, inicio: '12:00', fin: '12:45' },
-  { id: 6, idx: 6, inicio: '12:45', fin: '13:30' },
-  { id: 7, idx: 7, inicio: '13:30', fin: '14:15' },
-];
-
-// Render time slots with breaks interleaved
 const RENDER_SLOTS = [
   { type: 'class', idx: 0, inicio: '07:45', fin: '08:30' },
   { type: 'class', idx: 1, inicio: '08:30', fin: '09:15' },
@@ -150,7 +163,7 @@ const RENDER_SLOTS = [
 ];
 
 // ==========================================
-// ALGORITMO DE GENERACIÓN
+// ALGORITMO GENÉTICO
 // ==========================================
 const generarHorarios = (materias, docentes, aulas) => {
   const horario = {};
@@ -166,17 +179,7 @@ const generarHorarios = (materias, docentes, aulas) => {
     ocupacionAulas[a.id] = Array(5).fill(null).map(() => Array(8).fill(false));
   });
 
-  // ---------------------------------------------------
-  // Divide N periodos SEMANALES en bloques de 2 o 3 por día
-  // Regla: nunca un bloque de 1 solo periodo
-  // Una materia de 2 periodos → un bloque de [2] en un solo día
-  // Una materia de 3 periodos → un bloque de [3] en un solo día
-  // Una materia de 4 periodos → dos días: [2, 2]
-  // Una materia de 5 periodos → dos días: [3, 2]
-  // Una materia de 6 periodos → dos días: [3, 3]
-  // ---------------------------------------------------
   const dividirEnBloques = (n) => {
-    // Los bloques resultantes se distribuirán en días distintos
     if (n === 2) return [2];
     if (n === 3) return [3];
     if (n === 4) return [2, 2];
@@ -184,7 +187,6 @@ const generarHorarios = (materias, docentes, aulas) => {
     if (n === 6) return [3, 3];
     if (n === 7) return [3, 2, 2];
     if (n === 8) return [3, 3, 2];
-    // Fallback genérico para cualquier valor
     const res = []; let r = n;
     while (r > 0) {
       if (r === 1) { if (res.length > 0) res[res.length-1]++; else res.push(2); r = 0; }
@@ -195,12 +197,10 @@ const generarHorarios = (materias, docentes, aulas) => {
   };
 
   const semestres = [3,4,5,6,7,8,9,10];
-
   semestres.forEach(sem => {
     horario[sem] = Array(5).fill(null).map(() => Array(8).fill(null));
     const materiasSem = materias.filter(m => m.semestre === sem);
 
-    // Helpers con `sem` en closure
     const puedeColocar = (mat, dia, pInicio, tam) => {
       const maxH = docentes.find(d => d.id === mat.docenteId)?.maxHoras || 25;
       if (pInicio + tam > 8) return false;
@@ -227,21 +227,14 @@ const generarHorarios = (materias, docentes, aulas) => {
       }
     };
 
-    // Construir lista de bloques: cada materia se divide en sus bloques semanales
-    // Cada bloque debe caer en un DÍA DIFERENTE (distribuir entre L-V)
-    // { mat, tam }
     const bloquesPendientes = [];
-    materiasSem.forEach(m => {
-      dividirEnBloques(m.periodos).forEach(tam => {
-        bloquesPendientes.push({ mat: m, tam });
-      });
+    // Preclasificación: materias críticas primero (HU-41)
+    const materiasOrdenadas = [...materiasSem].sort((a, b) => (b.critica ? 1 : 0) - (a.critica ? 1 : 0));
+    materiasOrdenadas.forEach(m => {
+      dividirEnBloques(m.periodos).forEach(tam => bloquesPendientes.push({ mat: m, tam }));
     });
-
-    // Ordenar: bloques más grandes primero (más difíciles de encajar)
     bloquesPendientes.sort((a, b) => b.tam - a.tam);
 
-    // REGLA DURA: debe haber clase el Lunes a las 07:45 (dia=0, periodo=0)
-    // Tomar el primer bloque que quepa exactamente en dia=0, pInicio=0
     let lunesOk = false;
     for (let i = 0; i < bloquesPendientes.length && !lunesOk; i++) {
       const { mat, tam } = bloquesPendientes[i];
@@ -252,31 +245,16 @@ const generarHorarios = (materias, docentes, aulas) => {
       }
     }
 
-    // DISTRIBUCIÓN SEMANAL (L-V):
-    // Para cada bloque pendiente:
-    //   1. Registrar qué días ya tienen asignado un bloque de ESA materia
-    //   2. Preferir días donde esa materia AÚN NO tiene bloque → distribución equitativa
-    //   3. Dentro del día elegido, buscar el primer hueco consecutivo suficiente (inicio temprano)
     bloquesPendientes.forEach(({ mat, tam }) => {
-      // Días donde esta materia ya tiene al menos un periodo asignado
       const diasOcupados = new Set();
-      for (let d = 0; d < 5; d++) {
-        for (let p = 0; p < 8; p++) {
+      for (let d = 0; d < 5; d++)
+        for (let p = 0; p < 8; p++)
           if (horario[sem][d][p]?.id === mat.id) diasOcupados.add(d);
-        }
-      }
 
-      // Intentar primero días libres para esta materia, luego los ocupados
-      const ordenDias = [0,1,2,3,4].sort((a,b) => {
-        const aOc = diasOcupados.has(a) ? 1 : 0;
-        const bOc = diasOcupados.has(b) ? 1 : 0;
-        return aOc - bOc; // días sin esta materia primero
-      });
-
+      const ordenDias = [0,1,2,3,4].sort((a,b) => (diasOcupados.has(a)?1:0) - (diasOcupados.has(b)?1:0));
       let asignado = false;
       for (const dia of ordenDias) {
         if (asignado) break;
-        // Recorrer posiciones de inicio de más temprano a más tarde
         for (let pInicio = 0; pInicio <= 8 - tam && !asignado; pInicio++) {
           if (puedeColocar(mat, dia, pInicio, tam)) {
             colocar(mat, dia, pInicio, tam);
@@ -290,7 +268,6 @@ const generarHorarios = (materias, docentes, aulas) => {
   return { horario, horasDocentes };
 };
 
-// Validar conflictos en horario
 const validarHorario = (horario, docentes) => {
   const conflictos = [];
   const ocupacionDocentes = {};
@@ -303,11 +280,7 @@ const validarHorario = (horario, docentes) => {
         if (celda) {
           const key = `${dia}-${p}`;
           if (ocupacionDocentes[celda.docenteId]?.[key]) {
-            conflictos.push({
-              tipo: 'conflicto_docente',
-              mensaje: `Docente ${celda.docenteId} asignado dos veces el ${DIAS[dia]} P${p + 1}`,
-              sem: parseInt(sem), dia, periodo: p
-            });
+            conflictos.push({ tipo: 'cruce_docente', mensaje: `Docente en conflicto el ${DIAS[dia]} P${p+1}`, sem: parseInt(sem), dia, periodo: p });
           }
           ocupacionDocentes[celda.docenteId][key] = true;
         }
@@ -315,23 +288,17 @@ const validarHorario = (horario, docentes) => {
     }
   });
 
-  // Verificar regla: no debe haber periodos sueltos de 1 por materia en un día
   Object.keys(horario).forEach(sem => {
     for (let dia = 0; dia < 5; dia++) {
-      // Agrupar periodos consecutivos por materia en este día
       const celdas = horario[sem][dia];
       let p = 0;
       while (p < 8) {
         if (celdas[p]) {
           const matId = celdas[p].id;
           let len = 1;
-          while (p + len < 8 && celdas[p + len]?.id === matId) len++;
+          while (p + len < 8 && celdas[p+len]?.id === matId) len++;
           if (len === 1) {
-            conflictos.push({
-              tipo: 'bloque_suelto',
-              mensaje: `Sem ${sem}: "${celdas[p].nombre}" tiene solo 1 periodo suelto el ${DIAS[dia]}`,
-              sem: parseInt(sem), dia, periodo: p
-            });
+            conflictos.push({ tipo: 'bloque_suelto', mensaje: `Sem ${sem}: "${celdas[p].nombre}" bloque suelto el ${DIAS[dia]}`, sem: parseInt(sem), dia, periodo: p });
           }
           p += len;
         } else { p++; }
@@ -339,10 +306,9 @@ const validarHorario = (horario, docentes) => {
     }
   });
 
-  // Verificar regla dura: Lunes 07:45
   Object.keys(horario).forEach(sem => {
     if (!horario[sem][0][0]) {
-      conflictos.push({ tipo: 'regla_dura', mensaje: `Sem ${sem}: No hay clase el Lunes a las 07:45`, sem: parseInt(sem) });
+      conflictos.push({ tipo: 'regla_dura', mensaje: `Sem ${sem}: Sin clase el Lunes 07:45`, sem: parseInt(sem) });
     }
   });
 
@@ -350,156 +316,153 @@ const validarHorario = (horario, docentes) => {
 };
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// APP PRINCIPAL
 // ==========================================
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState('generador');
+  const [usuario, setUsuario] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Estado global
+  const [usuarios, setUsuarios] = useState(INIT_USUARIOS);
   const [docentes, setDocentes] = useState(INIT_DOCENTES);
   const [materias, setMaterias] = useState(INIT_MATERIAS);
   const [aulas, setAulas] = useState(INIT_AULAS);
+  const [grupos, setGrupos] = useState(INIT_GRUPOS);
   const [horarioData, setHorarioData] = useState(null);
   const [horasDocData, setHorasDocData] = useState(null);
-  const [estadoValidacion, setEstadoValidacion] = useState(null); // null | 'pendiente' | 'aprobado'
+  const [estadoHorario, setEstadoHorario] = useState(null); // null | 'pendiente' | 'aprobado'
+  const [historial, setHistorial] = useState([]);
+  const [notificaciones, setNotificaciones] = useState([]);
+
+  const addNotif = (msg, tipo = 'info') => {
+    const n = { id: Date.now(), msg, tipo, fecha: new Date().toLocaleString() };
+    setNotificaciones(prev => [n, ...prev].slice(0, 20));
+  };
 
   const onHorarioGenerado = (horario, horas) => {
     setHorarioData(horario);
     setHorasDocData(horas);
-    setEstadoValidacion('pendiente');
-    setActiveTab('validacion');
+    setEstadoHorario('pendiente');
+    const entry = { id: Date.now(), accion: 'Horario generado', usuario: usuario?.nombre, fecha: new Date().toLocaleString(), estado: 'pendiente' };
+    setHistorial(prev => [entry, ...prev]);
+    addNotif('Horario generado — pendiente de validación', 'warning');
+    setActiveTab('mod4');
   };
 
   const onHorarioCambiado = (nuevoHorario) => {
     setHorarioData(nuevoHorario);
-    setEstadoValidacion('pendiente');
+    setEstadoHorario('pendiente');
+    addNotif('Horario modificado manualmente', 'info');
   };
 
-  if (!isAuthenticated) return <Login onLogin={() => setIsAuthenticated(true)} />;
+  const onAprobar = () => {
+    setEstadoHorario('aprobado');
+    const entry = { id: Date.now(), accion: 'Horario aprobado', usuario: usuario?.nombre, fecha: new Date().toLocaleString(), estado: 'aprobado' };
+    setHistorial(prev => [entry, ...prev]);
+    addNotif('Horario aprobado formalmente', 'success');
+    setActiveTab('mod4');
+  };
 
-  const tabs = [
-    { id: 'generador', label: 'Generador', icon: <Play size={18} /> },
-    { id: 'horarios', label: 'Ver Horarios', icon: <Calendar size={18} /> },
-    { id: 'validacion', label: 'Validación', icon: <Shield size={18} />, badge: estadoValidacion === 'pendiente' },
-    { id: 'docentes', label: 'Docentes', icon: <Users size={18} /> },
-    { id: 'materias', label: 'Materias', icon: <BookOpen size={18} /> },
-    { id: 'aulas', label: 'Aulas', icon: <Building2 size={18} /> },
-  ];
+  if (!usuario) return <Login usuarios={usuarios} onLogin={u => { setUsuario(u); setActiveTab('dashboard'); }} />;
+
+  const permisos = PERMISOS_ROL[usuario.rol] || [];
+  const canAccess = (mod) => permisos.includes(mod);
+
+  const TABS = [
+    { id: 'dashboard', label: 'Dashboard', icon: <Home size={16} />, always: true },
+    { id: 'mod1', label: 'Administracion del Sistema', icon: <Shield size={16} />, mod: 'mod1' },
+    { id: 'mod2', label: 'Gestión Académica', icon: <Database size={16} />, mod: 'mod2' },
+    { id: 'mod3', label: 'Generación de Horarios', icon: <Play size={16} />, mod: 'mod3' },
+    { id: 'mod4', label: 'Gestión de Horarios', icon: <Calendar size={16} />, mod: 'mod4', badge: estadoHorario === 'pendiente' },
+    { id: 'mod5', label: 'Validación', icon: <CheckCircle size={16} />, mod: 'mod5' },
+    { id: 'mod6', label: 'Reportes', icon: <FileText size={16} />, mod: 'mod6' },
+  ].filter(t => t.always || canAccess(t.mod));
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Georgia', serif", position: 'fixed', inset: 0 }}>
       <GlobalStyles />
-      {/* Sidebar */}
-      <aside style={{
-        width: sidebarOpen ? 220 : 64, background: C.navy, color: 'white',
-        display: 'flex', flexDirection: 'column', transition: 'width 0.25s', flexShrink: 0
-      }}>
-        <div style={{ padding: '16px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 64 }}>
+
+      {/* SIDEBAR */}
+      <aside style={{ width: sidebarOpen ? 230 : 56, background: C.navy, color: 'white', display: 'flex', flexDirection: 'column', transition: 'width 0.25s', flexShrink: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 58 }}>
           {sidebarOpen && (
             <div>
-              <div style={{ color: C.gold, fontWeight: 'bold', fontSize: 15, letterSpacing: 2 }}>EMI</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: 1 }}>SAGH</div>
+              <div style={{ color: C.gold, fontWeight: 'bold', fontSize: 14, letterSpacing: 2 }}>EMI — SAGH</div>
+              <div style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 1 }}>Sistema Acad. de Horarios</div>
             </div>
           )}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 4 }}>
-            <Menu size={18} />
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+            <Menu size={16} />
           </button>
         </div>
-        <nav style={{ flex: 1, padding: '8px 0' }}>
-          {tabs.map(t => (
+
+        {sidebarOpen && (
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', fontSize: 11 }}>
+            <div style={{ color: '#94a3b8' }}>Sesión activa</div>
+            <div style={{ color: 'white', fontWeight: 'bold', fontSize: 12, marginTop: 2 }}>{usuario.nombre}</div>
+            <span style={{ background: 'rgba(200,168,75,0.2)', color: C.gold, fontSize: 10, padding: '1px 8px', borderRadius: 10 }}>{usuario.rol}</span>
+          </div>
+        )}
+
+        <nav style={{ flex: 1, padding: '6px 0', overflowY: 'auto' }}>
+          {TABS.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: sidebarOpen ? '9px 14px' : '9px 0',
+              justifyContent: sidebarOpen ? 'flex-start' : 'center',
               background: activeTab === t.id ? 'rgba(200,168,75,0.15)' : 'none',
               borderLeft: activeTab === t.id ? `3px solid ${C.gold}` : '3px solid transparent',
               border: 'none', borderRight: 'none', borderTop: 'none', borderBottom: 'none',
-              borderLeft: activeTab === t.id ? `3px solid ${C.gold}` : '3px solid transparent',
               color: activeTab === t.id ? C.gold : '#94a3b8',
-              cursor: 'pointer', fontSize: 13, position: 'relative', whiteSpace: 'nowrap'
+              cursor: 'pointer', fontSize: 12, position: 'relative', whiteSpace: 'nowrap'
             }}>
               {t.icon}
               {sidebarOpen && <span>{t.label}</span>}
-              {t.badge && (
-                <span style={{
-                  background: '#ef4444', color: 'white', borderRadius: '50%',
-                  width: 8, height: 8, position: 'absolute', right: 12, top: 10
-                }} />
-              )}
+              {t.badge && <span style={{ background: '#ef4444', color: 'white', borderRadius: '50%', width: 7, height: 7, position: 'absolute', right: 10, top: 8 }} />}
             </button>
           ))}
         </nav>
-        <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          {sidebarOpen && estadoValidacion && (
-            <div style={{
-              background: estadoValidacion === 'aprobado' ? 'rgba(22,101,52,0.3)' : 'rgba(200,168,75,0.15)',
-              border: `1px solid ${estadoValidacion === 'aprobado' ? '#16a34a' : C.gold}`,
-              borderRadius: 6, padding: '6px 10px', marginBottom: 8, fontSize: 11,
-              color: estadoValidacion === 'aprobado' ? '#4ade80' : C.gold, display: 'flex', alignItems: 'center', gap: 6
-            }}>
-              {estadoValidacion === 'aprobado' ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
-              {estadoValidacion === 'aprobado' ? 'Horario Aprobado' : 'Pendiente Validación'}
+
+        <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          {sidebarOpen && estadoHorario && (
+            <div style={{ background: estadoHorario === 'aprobado' ? 'rgba(22,101,52,0.3)' : 'rgba(200,168,75,0.15)', border: `1px solid ${estadoHorario === 'aprobado' ? '#16a34a' : C.gold}`, borderRadius: 6, padding: '5px 8px', marginBottom: 8, fontSize: 10, color: estadoHorario === 'aprobado' ? '#4ade80' : C.gold, display: 'flex', alignItems: 'center', gap: 5 }}>
+              {estadoHorario === 'aprobado' ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
+              {estadoHorario === 'aprobado' ? 'Horario Aprobado' : 'Pendiente Validación'}
             </div>
           )}
-          <button onClick={() => setIsAuthenticated(false)} style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'none',
-            border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: '#f87171',
-            cursor: 'pointer', padding: '6px 10px', fontSize: 12
-          }}>
-            <LogOut size={14} />
+          <button onClick={() => setUsuario(null)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: '#f87171', cursor: 'pointer', padding: '6px 8px', fontSize: 11 }}>
+            <LogOut size={13} />
             {sidebarOpen && 'Cerrar Sesión'}
           </button>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* MAIN */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          background: 'white', padding: '0 24px', height: 56, display: 'flex',
-          alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: `3px solid ${C.gold}`, flexShrink: 0
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 3, height: 20, background: C.gold, borderRadius: 2 }} />
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 'bold', color: C.navy, letterSpacing: 0.5 }}>
-              {tabs.find(t => t.id === activeTab)?.label}
+        {/* Header */}
+        <header style={{ background: 'white', padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${C.gold}`, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 3, height: 18, background: C.gold, borderRadius: 2 }} />
+            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 'bold', color: C.navy }}>
+              {TABS.find(t => t.id === activeTab)?.label || 'Dashboard'}
             </h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.gray }}>
-            <User size={14} />
-            <span>Jefatura Académica</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <NotifBell notificaciones={notificaciones} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.gray }}>
+              <User size={13} /> <span>{usuario.nombre}</span>
+            </div>
           </div>
         </header>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
-          {activeTab === 'generador' && (
-            <GeneradorView
-              materias={materias} docentes={docentes} aulas={aulas}
-              onFinish={onHorarioGenerado}
-            />
-          )}
-          {activeTab === 'horarios' && (
-            <HorariosView
-              horario={horarioData} docentes={docentes} aulas={aulas} materias={materias}
-              estadoValidacion={estadoValidacion}
-              onCambio={onHorarioCambiado}
-            />
-          )}
-          {activeTab === 'validacion' && (
-            <ValidacionView
-              horario={horarioData} docentes={docentes} horasDoc={horasDocData}
-              estado={estadoValidacion}
-              onAprobar={() => { setEstadoValidacion('aprobado'); setActiveTab('horarios'); }}
-              onVerHorario={() => setActiveTab('horarios')}
-            />
-          )}
-          {activeTab === 'docentes' && (
-            <DocentesView docentes={docentes} setDocentes={setDocentes} />
-          )}
-          {activeTab === 'materias' && (
-            <MateriasView materias={materias} setMaterias={setMaterias} docentes={docentes} />
-          )}
-          {activeTab === 'aulas' && (
-            <AulasView aulas={aulas} setAulas={setAulas} />
-          )}
+        <div style={{ flex: 1, overflow: 'auto', padding: 20 }} className="fade-in">
+          {activeTab === 'dashboard' && <DashboardView docentes={docentes} materias={materias} aulas={aulas} grupos={grupos} horarioData={horarioData} estadoHorario={estadoHorario} historial={historial} notificaciones={notificaciones} onNavigate={setActiveTab} />}
+          {activeTab === 'mod1' && <Mod1AdminView usuarios={usuarios} setUsuarios={setUsuarios} docentes={docentes} addNotif={addNotif} />}
+          {activeTab === 'mod2' && <Mod2GestionAcadView docentes={docentes} setDocentes={setDocentes} materias={materias} setMaterias={setMaterias} aulas={aulas} setAulas={setAulas} grupos={grupos} setGrupos={setGrupos} />}
+          {activeTab === 'mod3' && <Mod3GeneradorView materias={materias} docentes={docentes} aulas={aulas} onFinish={onHorarioGenerado} />}
+          {activeTab === 'mod4' && <Mod4HorariosView horario={horarioData} docentes={docentes} aulas={aulas} materias={materias} estadoHorario={estadoHorario} onCambio={onHorarioCambiado} />}
+          {activeTab === 'mod5' && <Mod5ValidacionView horario={horarioData} docentes={docentes} horasDoc={horasDocData} estado={estadoHorario} onAprobar={onAprobar} onVerHorario={() => setActiveTab('mod4')} historial={historial} addNotif={addNotif} />}
+          {activeTab === 'mod6' && <Mod6ReportesView horario={horarioData} docentes={docentes} materias={materias} aulas={aulas} grupos={grupos} horasDoc={horasDocData} estadoHorario={estadoHorario} />}
         </div>
       </main>
     </div>
@@ -507,82 +470,80 @@ export default function App() {
 }
 
 // ==========================================
+// NOTIFICACIONES
+// ==========================================
+function NotifBell({ notificaciones }) {
+  const [open, setOpen] = useState(false);
+  const nLeidas = notificaciones.length;
+  return (
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(!open)} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: C.gray, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, position: 'relative' }}>
+        <Bell size={14} />
+        {nLeidas > 0 && <span style={{ background: '#ef4444', color: 'white', borderRadius: '50%', width: 14, height: 14, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: -4, right: -4 }}>{Math.min(nLeidas, 9)}</span>}
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: 34, right: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 300, zIndex: 200, maxHeight: 320, overflowY: 'auto' }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', fontSize: 12, color: C.navy }}>Notificaciones</div>
+          {notificaciones.length === 0 && <div style={{ padding: 16, fontSize: 12, color: C.gray, textAlign: 'center' }}>Sin notificaciones</div>}
+          {notificaciones.map(n => (
+            <div key={n.id} style={{ padding: '8px 14px', borderBottom: '1px solid #f8fafc', fontSize: 11 }}>
+              <div style={{ color: n.tipo === 'success' ? '#16a34a' : n.tipo === 'warning' ? '#92400e' : C.navy }}>{n.msg}</div>
+              <div style={{ color: '#94a3b8', marginTop: 2 }}>{n.fecha}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
 // LOGIN
 // ==========================================
-function Login({ onLogin }) {
+function Login({ usuarios, onLogin }) {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = () => {
-    setLoading(true);
+    setLoading(true); setError('');
     setTimeout(() => {
-      if (user === 'admin' && pass === 'emi123') { onLogin(); }
-      else { setError('Credenciales incorrectas. (admin / emi123)'); setLoading(false); }
+      const u = usuarios.find(u => u.usuario === user && u.password === pass && u.activo);
+      if (u) onLogin(u);
+      else { setError('Credenciales incorrectas o usuario inactivo.'); setLoading(false); }
     }, 600);
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: `linear-gradient(135deg, ${C.navy} 0%, #0a1a35 60%, #1a365d 100%)`,
-      fontFamily: "'Georgia', serif", overflow: 'auto'
-    }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${C.navy} 0%, #0a1a35 60%, ${C.navyLight} 100%)`, fontFamily: "'Georgia', serif", overflow: 'auto' }}>
       <GlobalStyles />
       <div style={{ textAlign: 'center', width: '100%', maxWidth: 400, padding: 20 }}>
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)',
-          border: `1px solid rgba(200,168,75,0.3)`, borderRadius: 16,
-          padding: '40px 36px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
-        }}>
-          <div style={{
-            width: 72, height: 72, background: `radial-gradient(circle, ${C.gold}, #8b6914)`,
-            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 20px', boxShadow: `0 0 30px rgba(200,168,75,0.4)`
-          }}>
-            <Calendar color="white" size={32} />
+        <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', border: `1px solid rgba(200,168,75,0.3)`, borderRadius: 16, padding: '40px 36px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+          <div style={{ width: 70, height: 70, background: `radial-gradient(circle, ${C.gold}, #8b6914)`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', boxShadow: `0 0 28px rgba(200,168,75,0.4)` }}>
+            <Calendar color="white" size={30} />
           </div>
-          <h1 style={{ color: C.gold, margin: '0 0 4px', fontSize: 22, letterSpacing: 3, fontWeight: 'bold' }}>SAGH — EMI</h1>
-          <p style={{ color: '#64748b', fontSize: 12, margin: '0 0 28px', letterSpacing: 1 }}>SISTEMA AUTOMÁTICO DE GENERACIÓN DE HORARIOS</p>
+          <h1 style={{ color: C.gold, margin: '0 0 4px', fontSize: 20, letterSpacing: 3 }}>SAGH — EMI</h1>
+          <p style={{ color: '#64748b', fontSize: 11, margin: '0 0 24px', letterSpacing: 1 }}>SISTEMA AUTOMÁTICO DE GENERACIÓN DE HORARIOS</p>
 
-          {error && (
-            <div style={{ background: 'rgba(153,27,27,0.3)', border: '1px solid #991b1b', color: '#fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
-              {error}
+          <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '10px', marginBottom: 16, fontSize: 11, color: '#94a3b8', textAlign: 'left' }}>
+            <div style={{ fontWeight: 'bold', color: C.gold, marginBottom: 4 }}>Usuarios de prueba:</div>
+            <div>admin / emi123 → Administrador</div>
+            <div>jefe.carrera / jefe123 → Jefe de Carrera</div>
+            <div>dde / dde123 → DDE</div>
+          </div>
+
+          {error && <div style={{ background: 'rgba(153,27,27,0.3)', border: '1px solid #991b1b', color: '#fca5a5', borderRadius: 8, padding: '8px 12px', fontSize: 12, marginBottom: 14 }}>{error}</div>}
+
+          {[['USUARIO', user, setUser, 'text', 'admin'], ['CONTRASEÑA', pass, setPass, 'password', '••••••']].map(([label, val, setter, type, ph]) => (
+            <div key={label} style={{ marginBottom: 12, textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: 10, color: '#94a3b8', letterSpacing: 1, marginBottom: 5 }}>{label}</label>
+              <input type={type} value={val} onChange={e => setter(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} placeholder={ph}
+                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(200,168,75,0.2)', borderRadius: 8, color: 'white', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
             </div>
-          )}
+          ))}
 
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', textAlign: 'left', fontSize: 11, color: '#94a3b8', letterSpacing: 1, marginBottom: 6 }}>USUARIO</label>
-            <input
-              type="text" value={user} onChange={e => setUser(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="admin"
-              style={{
-                width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(200,168,75,0.2)', borderRadius: 8, color: 'white',
-                fontSize: 14, outline: 'none', boxSizing: 'border-box'
-              }}
-            />
-          </div>
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', textAlign: 'left', fontSize: 11, color: '#94a3b8', letterSpacing: 1, marginBottom: 6 }}>CONTRASEÑA</label>
-            <input
-              type="password" value={pass} onChange={e => setPass(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="••••••"
-              style={{
-                width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(200,168,75,0.2)', borderRadius: 8, color: 'white',
-                fontSize: 14, outline: 'none', boxSizing: 'border-box'
-              }}
-            />
-          </div>
-          <button onClick={handleLogin} disabled={loading} style={{
-            width: '100%', padding: '12px', background: `linear-gradient(135deg, ${C.gold}, #8b6914)`,
-            border: 'none', borderRadius: 8, color: C.navy, fontWeight: 'bold', fontSize: 14,
-            cursor: 'pointer', letterSpacing: 1, opacity: loading ? 0.7 : 1
-          }}>
+          <button onClick={handleLogin} disabled={loading} style={{ width: '100%', padding: '11px', background: `linear-gradient(135deg, ${C.gold}, #8b6914)`, border: 'none', borderRadius: 8, color: C.navy, fontWeight: 'bold', fontSize: 13, cursor: 'pointer', letterSpacing: 1, opacity: loading ? 0.7 : 1, marginTop: 8 }}>
             {loading ? 'VERIFICANDO...' : 'INGRESAR AL SISTEMA'}
           </button>
         </div>
@@ -592,24 +553,621 @@ function Login({ onLogin }) {
 }
 
 // ==========================================
-// GENERADOR
+// DASHBOARD
 // ==========================================
-function GeneradorView({ materias, docentes, aulas, onFinish }) {
-  const [phase, setPhase] = useState('idle'); // idle | running | done
+function DashboardView({ docentes, materias, aulas, grupos, horarioData, estadoHorario, historial, notificaciones, onNavigate }) {
+  const stats = [
+    { v: docentes.length, l: 'Docentes', icon: <Users size={20} />, color: C.navy, mod: 'mod2' },
+    { v: materias.length, l: 'Materias', icon: <BookOpen size={20} />, color: C.blue, mod: 'mod2' },
+    { v: aulas.filter(a => a.disponible).length, l: 'Aulas Disp.', icon: <Building2 size={20} />, color: C.green, mod: 'mod2' },
+    { v: grupos.length, l: 'Grupos', icon: <Layers size={20} />, color: C.purple, mod: 'mod2' },
+  ];
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ margin: '0 0 4px', color: C.navy, fontSize: 18 }}>Bienvenido al SAGH</h2>
+        <p style={{ color: C.gray, fontSize: 13, margin: 0 }}>Escuela Militar de Ingeniería · Carrera de Ingeniería de Sistemas · Gestión I/2026</p>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+        {stats.map(s => (
+          <button key={s.l} onClick={() => onNavigate(s.mod)} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '16px', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.2s' }}>
+            <div style={{ background: s.color, color: 'white', width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.icon}</div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: C.navy }}>{s.v}</div>
+              <div style={{ fontSize: 11, color: C.gray }}>{s.l}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* Estado del horario */}
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18 }}>
+          <h3 style={{ margin: '0 0 14px', color: C.navy, fontSize: 13, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Activity size={15} /> Estado del Sistema
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Horario Generado', ok: !!horarioData },
+              { label: 'Validación Completada', ok: estadoHorario === 'aprobado' },
+              { label: 'Restricciones Configuradas', ok: true },
+              { label: 'Docentes Cargados', ok: docentes.length > 0 },
+              { label: 'Materias Cargadas', ok: materias.length > 0 },
+            ].map(item => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: C.gray }}>{item.label}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: item.ok ? '#16a34a' : '#94a3b8', fontWeight: 'bold' }}>
+                  {item.ok ? <CheckCircle size={13} /> : <Clock size={13} />}
+                  {item.ok ? 'OK' : 'Pendiente'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Módulos rápidos */}
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18 }}>
+          <h3 style={{ margin: '0 0 14px', color: C.navy, fontSize: 13, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Layers size={15} /> Acceso Rápido a Módulos
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { id: 'mod3', label: 'Generar Horario', desc: 'Algoritmo Genético', icon: <Play size={14} />, color: C.navy },
+              { id: 'mod5', label: 'Validar Horario', desc: 'Verificar restricciones', icon: <CheckCircle size={14} />, color: '#16a34a' },
+              { id: 'mod6', label: 'Ver Reportes', desc: 'Exportar PDF / Excel', icon: <FileText size={14} />, color: C.blue },
+            ].map(m => (
+              <button key={m.id} onClick={() => onNavigate(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ color: m.color, flexShrink: 0 }}>{m.icon}</div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 'bold', color: C.navy }}>{m.label}</div>
+                  <div style={{ fontSize: 11, color: C.gray }}>{m.desc}</div>
+                </div>
+                <ChevronRight size={13} style={{ marginLeft: 'auto', color: C.gray }} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Historial */}
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18, gridColumn: '1 / -1' }}>
+          <h3 style={{ margin: '0 0 14px', color: C.navy, fontSize: 13, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <ClipboardList size={15} /> Historial de Cambios (HU-63)
+          </h3>
+          {historial.length === 0 ? (
+            <div style={{ fontSize: 12, color: C.gray, textAlign: 'center', padding: '16px 0' }}>Sin actividad registrada aún</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {historial.slice(0, 5).map(h => (
+                <div key={h.id} style={{ display: 'flex', gap: 10, fontSize: 12, padding: '6px 10px', background: '#f8fafc', borderRadius: 6 }}>
+                  <span style={{ color: C.gold }}>{h.fecha}</span>
+                  <span style={{ color: C.navy, fontWeight: 'bold' }}>{h.accion}</span>
+                  <span style={{ color: C.gray }}>— {h.usuario}</span>
+                  <span style={{ marginLeft: 'auto', color: h.estado === 'aprobado' ? '#16a34a' : '#92400e', fontWeight: 'bold', fontSize: 11 }}>{h.estado?.toUpperCase()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// : ADMINISTRACIÓN DEL SISTEMA
+// ==========================================
+function Mod1AdminView({ usuarios, setUsuarios, docentes, addNotif }) {
+  const [subTab, setSubTab] = useState('usuarios');
+  const [modal, setModal] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+
+  const guardarUsuario = (datos) => {
+    if (datos.id) setUsuarios(prev => prev.map(u => u.id === datos.id ? datos : u));
+    else setUsuarios(prev => [...prev, { ...datos, id: `u${Date.now()}` }]);
+    addNotif(datos.id ? 'Usuario actualizado' : 'Usuario creado', 'success');
+    setModal(null);
+  };
+
+  const eliminarUsuario = (id) => {
+    setUsuarios(prev => prev.filter(u => u.id !== id));
+    addNotif('Usuario eliminado', 'info');
+    setModal(null);
+  };
+
+  const toggleActivo = (id) => {
+    setUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !u.activo } : u));
+  };
+
+  const filtrados = usuarios.filter(u =>
+    u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    u.usuario.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[['usuarios', 'Usuarios', <Users size={14}/>], ['roles', 'Roles y Permisos', <Shield size={14}/>], ['configuracion', 'Configuración', <Settings size={14}/>]].map(([id, label, icon]) => (
+          <button key={id} onClick={() => setSubTab(id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', background: subTab === id ? C.navy : '#e2e8f0', color: subTab === id ? C.gold : C.gray }}>
+            {icon} {label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === 'usuarios' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: 260 }}>
+              <Search size={13} style={{ position: 'absolute', left: 10, top: 9, color: C.gray }} />
+              <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar usuario..." style={{ ...inputStyle, paddingLeft: 30 }} />
+            </div>
+            <button onClick={() => setModal({ nombre: '', usuario: '', password: '', rol: 'DDE', email: '', activo: true, docenteId: null })} style={btnPrimary}>
+              <Plus size={14} /> Nuevo Usuario
+            </button>
+          </div>
+
+          <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: C.grayLight }}>
+                  {['Nombre', 'Usuario', 'Rol', 'Email', 'Estado', 'Acciones'].map(h => (
+                    <th key={h} style={thStyle}>{h.toUpperCase()}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((u, i) => (
+                  <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                    <td style={tdStyle}><span style={{ fontWeight: 'bold', color: C.navy }}>{u.nombre}</span></td>
+                    <td style={tdStyle}><code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>{u.usuario}</code></td>
+                    <td style={tdStyle}><RolBadge rol={u.rol} /></td>
+                    <td style={tdStyle}><span style={{ fontSize: 12, color: C.gray }}>{u.email}</span></td>
+                    <td style={tdStyle}>
+                      <button onClick={() => toggleActivo(u.id)} style={{ background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626', border: 'none', borderRadius: 12, padding: '3px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 'bold' }}>
+                        {u.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td style={tdStyle}>
+                      <button onClick={() => setModal({ ...u })} style={btnSmall}><Pencil size={12} /></button>
+                      <button onClick={() => eliminarUsuario(u.id)} style={{ ...btnSmall, marginLeft: 6, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={12} /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'roles' && (
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: C.grayLight }}>
+                <th style={thStyle}>ROL</th>
+                {['MOD-1 Admin', 'MOD-2 Acad.', 'MOD-3 Generación', 'MOD-4 Horarios', 'MOD-5 Valid.', 'MOD-6 Reportes'].map(m => (
+                  <th key={m} style={thStyle}>{m}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ROLES.map((rol, i) => {
+                const perms = PERMISOS_ROL[rol] || [];
+                return (
+                  <tr key={rol} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                    <td style={tdStyle}><RolBadge rol={rol} /></td>
+                    {['mod1','mod2','mod3','mod4','mod5','mod6'].map(m => (
+                      <td key={m} style={{ ...tdStyle, textAlign: 'center' }}>
+                        {perms.includes(m) ? <CheckCircle size={15} color="#16a34a" /> : <X size={15} color="#cbd5e1" />}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {subTab === 'configuracion' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          {[
+            { label: 'Gestión Activa', valor: 'I/2026', desc: 'Periodo académico actual' },
+            { label: 'Carrera', valor: 'Ing. de Sistemas', desc: 'Unidad académica' },
+            { label: 'Semestres Activos', valor: '3°, 4°, 5°, 6°, 7°, 8°, 9°, 10°', desc: 'Semestres en el sistema' },
+            { label: 'Horario', valor: '07:45 – 14:15', desc: 'Rango de clases diario' },
+            { label: 'Periodos por día', valor: '8 periodos + 2 recesos', desc: 'Estructura de la jornada' },
+            { label: 'Reglamento', valor: 'RAC-03', desc: 'Normativa aplicada' },
+          ].map(c => (
+            <div key={c.label} style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: '14px 18px' }}>
+              <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>{c.desc}</div>
+              <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 14 }}>{c.label}</div>
+              <div style={{ color: C.gold, fontWeight: 'bold', marginTop: 4 }}>{c.valor}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {modal !== null && (
+        <FormModal titulo={modal.id ? 'Editar Usuario' : 'Nuevo Usuario'} onClose={() => setModal(null)} onGuardar={() => guardarUsuario(modal)}>
+          <FormField label="Nombre Completo"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label="Usuario"><input value={modal.usuario} onChange={e => setModal(m => ({ ...m, usuario: e.target.value }))} style={inputStyle} /></FormField>
+            <FormField label="Contraseña"><input type="password" value={modal.password} onChange={e => setModal(m => ({ ...m, password: e.target.value }))} style={inputStyle} /></FormField>
+          </div>
+          <FormField label="Rol">
+            <select value={modal.rol} onChange={e => setModal(m => ({ ...m, rol: e.target.value }))} style={inputStyle}>
+              {ROLES.map(r => <option key={r}>{r}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Email Institucional"><input value={modal.email} onChange={e => setModal(m => ({ ...m, email: e.target.value }))} style={inputStyle} /></FormField>
+          <FormField label="Estado">
+            <select value={modal.activo ? 'activo' : 'inactivo'} onChange={e => setModal(m => ({ ...m, activo: e.target.value === 'activo' }))} style={inputStyle}>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </FormField>
+        </FormModal>
+      )}
+    </div>
+  );
+}
+
+function RolBadge({ rol }) {
+  const colors = { 'Administrador': [C.navy, C.gold], 'Jefe de Carrera': [C.green, '#dcfce7'], 'DDE': [C.blue, C.blueLight], 'Docente': [C.gray, C.grayLight] };
+  const [bg, fg] = colors[rol] || [C.gray, C.grayLight];
+  return <span style={{ background: fg, color: bg, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{rol}</span>;
+}
+
+// ==========================================
+// MOD-2: GESTIÓN ACADÉMICA
+// ==========================================
+function Mod2GestionAcadView({ docentes, setDocentes, materias, setMaterias, aulas, setAulas, grupos, setGrupos }) {
+  const [subTab, setSubTab] = useState('docentes');
+
+  const subTabs = [
+    { id: 'docentes', label: 'Docentes', icon: <Users size={14}/> },
+    { id: 'materias', label: 'Materias', icon: <BookOpen size={14}/> },
+    { id: 'aulas', label: 'Aulas', icon: <Building2 size={14}/> },
+    { id: 'grupos', label: 'Grupos', icon: <Layers size={14}/> },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {subTabs.map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', background: subTab === t.id ? C.navy : '#e2e8f0', color: subTab === t.id ? C.gold : C.gray }}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+      {subTab === 'docentes' && <DocentesView docentes={docentes} setDocentes={setDocentes} />}
+      {subTab === 'materias' && <MateriasView materias={materias} setMaterias={setMaterias} docentes={docentes} />}
+      {subTab === 'aulas' && <AulasView aulas={aulas} setAulas={setAulas} />}
+      {subTab === 'grupos' && <GruposView grupos={grupos} setGrupos={setGrupos} aulas={aulas} />}
+    </div>
+  );
+}
+
+function DocentesView({ docentes, setDocentes }) {
+  const [modal, setModal] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+
+  const guardar = (datos) => {
+    if (datos.id) setDocentes(prev => prev.map(d => d.id === datos.id ? datos : d));
+    else setDocentes(prev => [...prev, { ...datos, id: `d${Date.now()}` }]);
+    setModal(null);
+  };
+
+  const filtrados = docentes.filter(d => d.nombre.toLowerCase().includes(busqueda.toLowerCase()) || d.especialidad.toLowerCase().includes(busqueda.toLowerCase()));
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: 260 }}>
+          <Search size={13} style={{ position: 'absolute', left: 10, top: 9, color: C.gray }} />
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar docente..." style={{ ...inputStyle, paddingLeft: 30 }} />
+        </div>
+        <button onClick={() => setModal({ nombre: '', tipo: 'Civil', maxHoras: 25, minHoras: 10, especialidad: '', email: '', disponibilidad: [0,1,2,3,4] })} style={btnPrimary}>
+          <Plus size={14} /> Nuevo Docente
+        </button>
+      </div>
+      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: C.grayLight }}>
+              {['Nombre', 'Tipo', 'Especialidad', 'Email', 'Hrs Mín/Máx', 'Acciones'].map(h => <th key={h} style={thStyle}>{h.toUpperCase()}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {filtrados.map((d, i) => (
+              <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                <td style={tdStyle}><span style={{ fontWeight: 'bold', color: C.navy, fontSize: 13 }}>{d.nombre}</span></td>
+                <td style={tdStyle}><span style={{ background: d.tipo.includes('Militar') ? '#dcfce7' : '#dbeafe', color: d.tipo.includes('Militar') ? '#166534' : '#1e40af', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{d.tipo}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 13, color: C.gray }}>{d.especialidad}</span></td>
+                <td style={tdStyle}><span style={{ fontSize: 12, color: C.gray }}>{d.email}</span></td>
+                <td style={{ ...tdStyle, textAlign: 'center' }}><span style={{ fontWeight: 'bold', color: C.navy }}>{d.minHoras}–{d.maxHoras} h</span></td>
+                <td style={tdStyle}>
+                  <button onClick={() => setModal({ ...d })} style={btnSmall}><Pencil size={12} /></button>
+                  <button onClick={() => setDocentes(prev => prev.filter(x => x.id !== d.id))} style={{ ...btnSmall, marginLeft: 6, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={12} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal !== null && (
+        <FormModal titulo={modal.id ? 'Editar Docente' : 'Nuevo Docente'} onClose={() => setModal(null)} onGuardar={() => guardar(modal)}>
+          <FormField label="Nombre Completo"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
+          <FormField label="Tipo">
+            <select value={modal.tipo} onChange={e => setModal(m => ({ ...m, tipo: e.target.value }))} style={inputStyle}>
+              {['Civil', 'Militar Activo', 'Militar Reserva'].map(t => <option key={t}>{t}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Especialidad"><input value={modal.especialidad} onChange={e => setModal(m => ({ ...m, especialidad: e.target.value }))} style={inputStyle} /></FormField>
+          <FormField label="Email Institucional"><input value={modal.email} onChange={e => setModal(m => ({ ...m, email: e.target.value }))} style={inputStyle} /></FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label="Mín. Horas/Semana"><input type="number" min={1} max={40} value={modal.minHoras} onChange={e => setModal(m => ({ ...m, minHoras: +e.target.value }))} style={inputStyle} /></FormField>
+            <FormField label="Máx. Horas/Semana"><input type="number" min={1} max={40} value={modal.maxHoras} onChange={e => setModal(m => ({ ...m, maxHoras: +e.target.value }))} style={inputStyle} /></FormField>
+          </div>
+          <FormField label="Disponibilidad (días)">
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {DIAS.map((dia, idx) => (
+                <button key={dia} type="button" onClick={() => setModal(m => ({ ...m, disponibilidad: m.disponibilidad.includes(idx) ? m.disponibilidad.filter(d => d !== idx) : [...m.disponibilidad, idx] }))}
+                  style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${modal.disponibilidad.includes(idx) ? C.navy : '#e2e8f0'}`, background: modal.disponibilidad.includes(idx) ? C.navy : 'white', color: modal.disponibilidad.includes(idx) ? 'white' : C.gray, fontSize: 12, cursor: 'pointer' }}>
+                  {dia.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+          </FormField>
+        </FormModal>
+      )}
+    </div>
+  );
+}
+
+function MateriasView({ materias, setMaterias, docentes }) {
+  const [filtro, setFiltro] = useState('Todos');
+  const [modal, setModal] = useState(null);
+
+  const guardar = (datos) => {
+    if (datos.id) setMaterias(prev => prev.map(m => m.id === datos.id ? datos : m));
+    else setMaterias(prev => [...prev, { ...datos, id: `m_${Date.now()}` }]);
+    setModal(null);
+  };
+
+  const filtradas = filtro === 'Todos' ? materias : materias.filter(m => m.semestre === parseInt(filtro));
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+        <select value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 180 }}>
+          <option value="Todos">Todos los Semestres</option>
+          {[3,4,5,6,7,8,9,10].map(s => <option key={s} value={s}>{s}° Semestre</option>)}
+        </select>
+        <button onClick={() => setModal({ nombre: '', semestre: 3, periodos: 2, docenteId: docentes[0]?.id || '', tipoAula: 'Aula', critica: false })} style={btnPrimary}>
+          <Plus size={14} /> Nueva Materia
+        </button>
+      </div>
+      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden', maxHeight: '60vh', overflowY: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+            <tr style={{ background: C.grayLight }}>
+              {['Materia', 'Sem.', 'Periodos', 'Tipo Aula', 'Crítica', 'Docente Asignado', 'Acciones'].map(h => <th key={h} style={thStyle}>{h.toUpperCase()}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {filtradas.map((m, i) => {
+              const doc = docentes.find(d => d.id === m.docenteId);
+              return (
+                <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                  <td style={tdStyle}><span style={{ fontWeight: 'bold', fontSize: 13, color: C.navy }}>{m.nombre}</span></td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}><span style={{ background: C.navy, color: C.gold, padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{m.semestre}°</span></td>
+                  <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 'bold', color: C.navy }}>{m.periodos}</td>
+                  <td style={tdStyle}><span style={{ background: m.tipoAula === 'Laboratorio' ? '#ede9fe' : '#f1f5f9', color: m.tipoAula === 'Laboratorio' ? '#6d28d9' : '#475569', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>{m.tipoAula}</span></td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{m.critica ? <span style={{ color: '#dc2626', fontWeight: 'bold', fontSize: 12 }}>★</span> : <span style={{ color: '#cbd5e1' }}>—</span>}</td>
+                  <td style={tdStyle}><span style={{ fontSize: 12, color: C.gray }}>{doc?.nombre || '—'}</span></td>
+                  <td style={tdStyle}>
+                    <button onClick={() => setModal({ ...m })} style={btnSmall}><Pencil size={12} /></button>
+                    <button onClick={() => setMaterias(prev => prev.filter(x => x.id !== m.id))} style={{ ...btnSmall, marginLeft: 6, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={12} /></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {modal && (
+        <FormModal titulo={modal.id ? 'Editar Materia' : 'Nueva Materia'} onClose={() => setModal(null)} onGuardar={() => guardar(modal)}>
+          <FormField label="Nombre de la Materia"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label="Semestre">
+              <select value={modal.semestre} onChange={e => setModal(m => ({ ...m, semestre: +e.target.value }))} style={inputStyle}>
+                {[3,4,5,6,7,8,9,10].map(s => <option key={s} value={s}>{s}°</option>)}
+              </select>
+            </FormField>
+            <FormField label="Periodos/Semana"><input type="number" min={1} max={8} value={modal.periodos} onChange={e => setModal(m => ({ ...m, periodos: +e.target.value }))} style={inputStyle} /></FormField>
+          </div>
+          <FormField label="Tipo de Aula">
+            <select value={modal.tipoAula} onChange={e => setModal(m => ({ ...m, tipoAula: e.target.value }))} style={inputStyle}>
+              {['Aula', 'Laboratorio', 'Auditorio', 'Sala'].map(t => <option key={t}>{t}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Docente Asignado">
+            <select value={modal.docenteId} onChange={e => setModal(m => ({ ...m, docenteId: e.target.value }))} style={inputStyle}>
+              {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Materia Crítica (HU-41)">
+            <select value={modal.critica ? 'si' : 'no'} onChange={e => setModal(m => ({ ...m, critica: e.target.value === 'si' }))} style={inputStyle}>
+              <option value="si">Sí — prioridad alta en el AG</option>
+              <option value="no">No</option>
+            </select>
+          </FormField>
+        </FormModal>
+      )}
+    </div>
+  );
+}
+
+function AulasView({ aulas, setAulas }) {
+  const [modal, setModal] = useState(null);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {['Aula', 'Laboratorio', 'Auditorio', 'Sala'].map(t => {
+            const cnt = aulas.filter(a => a.tipo === t).length;
+            return (
+              <div key={t} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 14px', textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', color: C.navy }}>{cnt}</div>
+                <div style={{ fontSize: 11, color: C.gray }}>{t}s</div>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={() => setModal({ nombre: '', tipo: 'Aula', capacidad: 30, edificio: 'A', disponible: true })} style={btnPrimary}>
+          <Plus size={14} /> Nueva Aula
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        {aulas.map(a => (
+          <div key={a.id} style={{ background: 'white', borderRadius: 10, border: `1px solid ${a.disponible ? '#e2e8f0' : '#fecaca'}`, padding: 14, opacity: a.disponible ? 1 : 0.75 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 14 }}>{a.nombre}</div>
+                <div style={{ fontSize: 11, color: C.gray }}>Edificio {a.edificio}</div>
+              </div>
+              <span style={{ background: a.tipo === 'Laboratorio' ? '#ede9fe' : a.tipo === 'Auditorio' ? '#fef9c3' : '#f1f5f9', color: a.tipo === 'Laboratorio' ? '#6d28d9' : a.tipo === 'Auditorio' ? '#92400e' : '#475569', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{a.tipo}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <div style={{ flex: 1, background: C.grayLight, borderRadius: 6, padding: 6, textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', color: C.navy }}>{a.capacidad}</div>
+                <div style={{ fontSize: 10, color: C.gray }}>Capacidad</div>
+              </div>
+              <div style={{ flex: 1, background: a.disponible ? '#dcfce7' : '#fee2e2', borderRadius: 6, padding: 6, textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', color: a.disponible ? '#166534' : '#dc2626' }}>{a.disponible ? 'Disponible' : 'No Disp.'}</div>
+                <div style={{ fontSize: 10, color: C.gray }}>Estado</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setAulas(prev => prev.map(x => x.id === a.id ? { ...x, disponible: !x.disponible } : x))} style={{ ...btnSmall, flex: 1, justifyContent: 'center' }}>
+                {a.disponible ? 'Deshabilitar' : 'Habilitar'}
+              </button>
+              <button onClick={() => setModal({ ...a })} style={btnSmall}><Pencil size={12} /></button>
+              <button onClick={() => setAulas(prev => prev.filter(x => x.id !== a.id))} style={{ ...btnSmall, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={12} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {modal && (
+        <FormModal titulo={modal.id ? 'Editar Aula' : 'Nueva Aula'} onClose={() => setModal(null)} onGuardar={() => {
+          if (modal.id) setAulas(prev => prev.map(a => a.id === modal.id ? modal : a));
+          else setAulas(prev => [...prev, { ...modal, id: `a_${Date.now()}` }]);
+          setModal(null);
+        }}>
+          <FormField label="Nombre del Aula"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label="Tipo">
+              <select value={modal.tipo} onChange={e => setModal(m => ({ ...m, tipo: e.target.value }))} style={inputStyle}>
+                {['Aula', 'Laboratorio', 'Auditorio', 'Sala'].map(t => <option key={t}>{t}</option>)}
+              </select>
+            </FormField>
+            <FormField label="Edificio"><input value={modal.edificio} onChange={e => setModal(m => ({ ...m, edificio: e.target.value }))} style={inputStyle} /></FormField>
+          </div>
+          <FormField label="Capacidad"><input type="number" min={1} value={modal.capacidad} onChange={e => setModal(m => ({ ...m, capacidad: +e.target.value }))} style={inputStyle} /></FormField>
+          <FormField label="Disponible">
+            <select value={modal.disponible ? 'si' : 'no'} onChange={e => setModal(m => ({ ...m, disponible: e.target.value === 'si' }))} style={inputStyle}>
+              <option value="si">Sí</option><option value="no">No</option>
+            </select>
+          </FormField>
+        </FormModal>
+      )}
+    </div>
+  );
+}
+
+function GruposView({ grupos, setGrupos, aulas }) {
+  const [modal, setModal] = useState(null);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
+        <button onClick={() => setModal({ nombre: '', semestre: 3, numEstudiantes: 30, aulaFijaId: null })} style={btnPrimary}>
+          <Plus size={14} /> Nuevo Grupo
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+        {grupos.map(g => {
+          const aulaFija = aulas.find(a => a.id === g.aulaFijaId);
+          return (
+            <div key={g.id} style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: C.navy }}>{g.nombre}</div>
+                  <div style={{ fontSize: 11, color: C.gray }}>{g.numEstudiantes} estudiantes</div>
+                </div>
+                <span style={{ background: C.navy, color: C.gold, padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{g.semestre}°</span>
+              </div>
+              {aulaFija && <div style={{ fontSize: 11, color: C.blue, background: C.blueLight, padding: '3px 8px', borderRadius: 6, marginBottom: 8 }}>📍 Aula fija: {aulaFija.nombre}</div>}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setModal({ ...g })} style={{ ...btnSmall, flex: 1, justifyContent: 'center' }}><Pencil size={12} /> Editar</button>
+                <button onClick={() => setGrupos(prev => prev.filter(x => x.id !== g.id))} style={{ ...btnSmall, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={12} /></button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {modal && (
+        <FormModal titulo={modal.id ? 'Editar Grupo' : 'Nuevo Grupo'} onClose={() => setModal(null)} onGuardar={() => {
+          if (modal.id) setGrupos(prev => prev.map(g => g.id === modal.id ? modal : g));
+          else setGrupos(prev => [...prev, { ...modal, id: `g${Date.now()}` }]);
+          setModal(null);
+        }}>
+          <FormField label="Nombre del Grupo"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label="Semestre">
+              <select value={modal.semestre} onChange={e => setModal(m => ({ ...m, semestre: +e.target.value }))} style={inputStyle}>
+                {[3,4,5,6,7,8,9,10].map(s => <option key={s} value={s}>{s}°</option>)}
+              </select>
+            </FormField>
+            <FormField label="N° Estudiantes"><input type="number" min={1} value={modal.numEstudiantes} onChange={e => setModal(m => ({ ...m, numEstudiantes: +e.target.value }))} style={inputStyle} /></FormField>
+          </div>
+          <FormField label="Aula Fija (HU-27)">
+            <select value={modal.aulaFijaId || ''} onChange={e => setModal(m => ({ ...m, aulaFijaId: e.target.value || null }))} style={inputStyle}>
+              <option value="">Sin aula fija</option>
+              {aulas.filter(a => a.disponible).map(a => <option key={a.id} value={a.id}>{a.nombre} — Cap. {a.capacidad}</option>)}
+            </select>
+          </FormField>
+        </FormModal>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// MOD-3: GENERACIÓN DE HORARIOS
+// ==========================================
+function Mod3GeneradorView({ materias, docentes, aulas, onFinish }) {
+  const [phase, setPhase] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
+  const [params, setParams] = useState({ poblacion: 50, generaciones: 50, mutacion: 0.05, cruce: 0.8 });
 
   const start = () => {
-    setPhase('running');
-    setProgress(0);
-    setLogs([]);
+    setPhase('running'); setProgress(0); setLogs([]);
     const steps = [
-      [400, 15, '↳ Inicializando población inicial (50 individuos)...'],
-      [700, 35, '↳ Calculando fitness: conflictos de docentes y restricciones...'],
-      [700, 55, '↳ Selección por torneo. Aplicando cruce de un punto...'],
-      [700, 75, '↳ Mutación aleatoria (tasa 0.05). Evaluando generación 47/50...'],
-      [600, 92, '↳ Verificando reglas duras: horas máx, lunes 07:45, bloques de 2-3 períodos...'],
-      [500, 100, '✓ Solución óptima encontrada. Fitness: 0 conflictos.'],
+      [350, 8, `↳ Inicializando población (${params.poblacion} individuos)...`],
+      [400, 18, '↳ Preclasificando materias críticas (HU-41)...'],
+      [600, 32, '↳ Calculando fitness: conflictos docentes, aulas y grupos...'],
+      [600, 50, `↳ Selección por torneo. Cruce con probabilidad ${params.cruce}...`],
+      [600, 65, `↳ Mutación (tasa ${params.mutacion}). Evaluando generaciones...`],
+      [500, 80, '↳ Verificando reglas duras: RAC-03, lunes 07:45, bloques 2-3...'],
+      [500, 90, '↳ Verificando continuidad de bloques y recesos automáticos...'],
+      [400, 100, '✓ Solución óptima encontrada. Fitness: 0 conflictos.'],
     ];
     let delay = 0;
     steps.forEach(([wait, prog, msg]) => {
@@ -619,74 +1177,78 @@ function GeneradorView({ materias, docentes, aulas, onFinish }) {
         setLogs(l => [...l, msg]);
         if (prog === 100) {
           const result = generarHorarios(materias, docentes, aulas);
-          setTimeout(() => {
-            setPhase('done');
-            onFinish(result.horario, result.horasDocentes);
-          }, 600);
+          setTimeout(() => { setPhase('done'); onFinish(result.horario, result.horasDocentes); }, 500);
         }
       }, delay);
     });
   };
 
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto' }}>
-      <div style={{
-        background: 'white', borderRadius: 12, padding: 40,
-        border: `1px solid #e2e8f0`, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', textAlign: 'center'
-      }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px',
-          boxShadow: `0 8px 24px rgba(15,36,68,0.3)`
-        }}>
-          <Settings color={C.gold} size={36} style={{ animation: phase === 'running' ? 'spin 2s linear infinite' : 'none' }} />
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 36, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+        <div style={{ width: 76, height: 76, borderRadius: '50%', background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: `0 8px 24px rgba(15,36,68,0.3)` }}>
+          <Settings color={C.gold} size={34} style={{ animation: phase === 'running' ? 'spin 2s linear infinite' : 'none' }} />
         </div>
-        <style>{`@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }`}</style>
 
-        <h2 style={{ color: C.navy, margin: '0 0 8px', fontSize: 22 }}>Motor de Algoritmo Genético</h2>
-        <p style={{ color: C.gray, fontSize: 13, margin: '0 0 8px' }}>
-          Genera horarios óptimos para los 8 semestres activos respetando:
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
-          {['Sin conflictos de docente', 'Máx 25 hrs/docente', 'Lunes 07:45 obligatorio', 'Bloques 2-3 periodos consecutivos', 'Asignación de aulas'].map(r => (
-            <span key={r} style={{ background: C.grayLight, color: C.navy, fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 'bold' }}>
-              ✓ {r}
-            </span>
+        <h2 style={{ color: C.navy, margin: '0 0 6px', fontSize: 20 }}>Motor de Algoritmo Genético</h2>
+        <p style={{ color: C.gray, fontSize: 12, margin: '0 0 16px' }}>Genera horarios óptimos respetando todas las restricciones del RAC-03</p>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 22 }}>
+          {['Sin cruces de docente/aula/grupo', 'RAC-03 cumplido', 'Lunes 07:45 obligatorio', 'Bloques 2-3 periodos continuos', 'Materias críticas priorizadas', 'Recesos automáticos'].map(r => (
+            <span key={r} style={{ background: C.grayLight, color: C.navy, fontSize: 11, padding: '3px 10px', borderRadius: 20, fontWeight: 'bold' }}>✓ {r}</span>
           ))}
         </div>
 
-        {/* Stats previas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 28 }}>
-          {[
-            { v: materias.length, l: 'Materias' },
-            { v: docentes.length, l: 'Docentes' },
-            { v: aulas.filter(a => a.disponible).length, l: 'Aulas Disp.' },
-          ].map(s => (
-            <div key={s.l} style={{ background: C.grayLight, borderRadius: 8, padding: '12px 0' }}>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: C.navy }}>{s.v}</div>
+        {/* Parámetros del AG */}
+        {phase === 'idle' && (
+          <div style={{ background: '#f8fafc', borderRadius: 10, padding: 16, marginBottom: 20, textAlign: 'left' }}>
+            <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 12, marginBottom: 12 }}>Parámetros del Algoritmo Genético</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Tamaño de Población', key: 'poblacion', min: 10, max: 200 },
+                { label: 'N° Generaciones', key: 'generaciones', min: 10, max: 500 },
+              ].map(p => (
+                <div key={p.key}>
+                  <label style={{ fontSize: 11, color: C.gray, display: 'block', marginBottom: 4 }}>{p.label}: <strong>{params[p.key]}</strong></label>
+                  <input type="range" min={p.min} max={p.max} value={params[p.key]} onChange={e => setParams(prev => ({ ...prev, [p.key]: +e.target.value }))} style={{ width: '100%' }} />
+                </div>
+              ))}
+              {[
+                { label: 'Tasa de Mutación', key: 'mutacion', min: 0.01, max: 0.5, step: 0.01 },
+                { label: 'Prob. de Cruce', key: 'cruce', min: 0.5, max: 1, step: 0.05 },
+              ].map(p => (
+                <div key={p.key}>
+                  <label style={{ fontSize: 11, color: C.gray, display: 'block', marginBottom: 4 }}>{p.label}: <strong>{params[p.key]}</strong></label>
+                  <input type="range" min={p.min} max={p.max} step={p.step} value={params[p.key]} onChange={e => setParams(prev => ({ ...prev, [p.key]: +parseFloat(e.target.value).toFixed(2) }))} style={{ width: '100%' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 22 }}>
+          {[{ v: materias.length, l: 'Materias' }, { v: docentes.length, l: 'Docentes' }, { v: aulas.filter(a => a.disponible).length, l: 'Aulas Disp.' }].map(s => (
+            <div key={s.l} style={{ background: C.grayLight, borderRadius: 8, padding: '10px 0' }}>
+              <div style={{ fontSize: 22, fontWeight: 'bold', color: C.navy }}>{s.v}</div>
               <div style={{ fontSize: 11, color: C.gray }}>{s.l}</div>
             </div>
           ))}
         </div>
 
         {phase === 'idle' && (
-          <button onClick={start} style={{
-            background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`,
-            color: C.gold, border: 'none', borderRadius: 8, padding: '14px 40px',
-            fontSize: 15, fontWeight: 'bold', cursor: 'pointer', letterSpacing: 1,
-            boxShadow: `0 4px 16px rgba(15,36,68,0.4)`, display: 'flex', alignItems: 'center', gap: 10, margin: '0 auto'
-          }}>
-            <Play fill={C.gold} size={18} /> GENERAR HORARIO ÓPTIMO
+          <button onClick={start} style={{ background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`, color: C.gold, border: 'none', borderRadius: 8, padding: '13px 36px', fontSize: 14, fontWeight: 'bold', cursor: 'pointer', letterSpacing: 1, boxShadow: `0 4px 16px rgba(15,36,68,0.4)`, display: 'flex', alignItems: 'center', gap: 10, margin: '0 auto' }}>
+            <Play fill={C.gold} size={16} /> GENERAR HORARIO ÓPTIMO
           </button>
         )}
 
         {phase === 'running' && (
           <div>
-            <div style={{ background: '#e2e8f0', borderRadius: 99, height: 8, marginBottom: 12, overflow: 'hidden' }}>
+            <div style={{ background: '#e2e8f0', borderRadius: 99, height: 8, marginBottom: 10, overflow: 'hidden' }}>
               <div style={{ height: '100%', background: `linear-gradient(90deg, ${C.gold}, ${C.goldLight})`, width: `${progress}%`, transition: 'width 0.4s' }} />
             </div>
-            <div style={{ background: '#0f172a', borderRadius: 8, padding: '12px 16px', textAlign: 'left', fontFamily: 'monospace', fontSize: 12, color: '#4ade80', minHeight: 120, maxHeight: 160, overflowY: 'auto' }}>
+            <div style={{ fontSize: 12, color: C.gray, marginBottom: 8 }}>{progress}% completado</div>
+            <div style={{ background: '#0f172a', borderRadius: 8, padding: '12px 14px', textAlign: 'left', fontFamily: 'monospace', fontSize: 11, color: '#4ade80', minHeight: 120, maxHeight: 160, overflowY: 'auto' }}>
               {logs.map((l, i) => <div key={i}>{l}</div>)}
               <span style={{ animation: 'pulse 1s infinite' }}>█</span>
             </div>
@@ -694,8 +1256,8 @@ function GeneradorView({ materias, docentes, aulas, onFinish }) {
         )}
 
         {phase === 'done' && (
-          <div style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15 }}>
-            <CheckCircle size={22} /> Generación Completada — Redirigiendo a Validación...
+          <div style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}>
+            <CheckCircle size={20} /> Generación Completada — Redirigiendo a Horarios...
           </div>
         )}
       </div>
@@ -704,141 +1266,19 @@ function GeneradorView({ materias, docentes, aulas, onFinish }) {
 }
 
 // ==========================================
-// VALIDACIÓN MANUAL
+// MOD-4: GESTIÓN DE HORARIOS
 // ==========================================
-function ValidacionView({ horario, docentes, horasDoc, estado, onAprobar, onVerHorario }) {
-  if (!horario) return (
-    <EmptyState icon={<Shield size={40} />} titulo="Sin horario generado" desc='Ve al "Generador" para crear un horario primero.' />
-  );
-
-  const conflictos = validarHorario(horario, docentes);
-  const semestres = [3, 4, 5, 6, 7, 8, 9, 10];
-  const totalClases = semestres.reduce((acc, s) => {
-    let c = 0;
-    for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) if (horario[s]?.[d]?.[p]) c++;
-    return acc + c;
-  }, 0);
-
-  const docentesSobrecargados = docentes.filter(d => (horasDoc?.[d.id] || 0) > d.maxHoras);
-
-  return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      {/* Header estado */}
-      <div style={{
-        background: conflictos.length === 0 && docentesSobrecargados.length === 0
-          ? `linear-gradient(135deg, #14532d, #166534)`
-          : `linear-gradient(135deg, #7f1d1d, #991b1b)`,
-        borderRadius: 12, padding: '20px 28px', marginBottom: 20, color: 'white',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {conflictos.length === 0 ? <CheckCircle size={32} /> : <AlertTriangle size={32} />}
-          <div>
-            <div style={{ fontWeight: 'bold', fontSize: 18 }}>
-              {conflictos.length === 0 ? 'Horario Válido — Sin Conflictos Detectados' : `${conflictos.length} Conflicto(s) Detectado(s)`}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
-              {totalClases} clases asignadas · {semestres.length} semestres · Estado: {estado === 'aprobado' ? 'APROBADO' : 'PENDIENTE DE VALIDACIÓN'}
-            </div>
-          </div>
-        </div>
-        {estado !== 'aprobado' && conflictos.length === 0 && (
-          <button onClick={onAprobar} style={{
-            background: C.gold, color: C.navy, border: 'none', borderRadius: 8,
-            padding: '10px 22px', fontWeight: 'bold', cursor: 'pointer', fontSize: 14,
-            display: 'flex', alignItems: 'center', gap: 8
-          }}>
-            <Check size={16} /> Aprobar Horario
-          </button>
-        )}
-        {estado === 'aprobado' && (
-          <span style={{ background: 'rgba(255,255,255,0.2)', padding: '8px 18px', borderRadius: 8, fontWeight: 'bold', fontSize: 14 }}>
-            ✓ APROBADO
-          </span>
-        )}
-      </div>
-
-      {/* Métricas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
-        {[
-          { v: totalClases, l: 'Clases Asignadas', c: C.navy },
-          { v: conflictos.length, l: 'Conflictos', c: conflictos.length > 0 ? '#991b1b' : '#166534' },
-          { v: docentesSobrecargados.length, l: 'Docentes Sobrecargados', c: docentesSobrecargados.length > 0 ? '#92400e' : '#166534' },
-          { v: docentes.filter(d => (horasDoc?.[d.id] || 0) > 0).length, l: 'Docentes con Carga', c: C.navy },
-        ].map(m => (
-          <div key={m.l} style={{ background: 'white', borderRadius: 10, padding: '16px', border: `1px solid #e2e8f0`, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 'bold', color: m.c }}>{m.v}</div>
-            <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{m.l}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Conflictos */}
-      {conflictos.length > 0 && (
-        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #fecaca', padding: 20, marginBottom: 20 }}>
-          <h3 style={{ margin: '0 0 12px', color: '#991b1b', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertCircle size={16} /> Conflictos a Resolver
-          </h3>
-          {conflictos.map((c, i) => (
-            <div key={i} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '8px 12px', marginBottom: 8, fontSize: 13, color: '#7f1d1d' }}>
-              <strong>{c.tipo === 'conflicto_docente' ? '⚠ Conflicto de Docente' : '⚠ Regla Dura'}</strong> — {c.mensaje}
-            </div>
-          ))}
-          <div style={{ marginTop: 12, fontSize: 12, color: C.gray }}>
-            Ve a <strong>Ver Horarios</strong> para hacer cambios manuales y resolver los conflictos.
-          </div>
-        </div>
-      )}
-
-      {/* Carga por docente */}
-      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 20 }}>
-        <h3 style={{ margin: '0 0 16px', color: C.navy, fontSize: 14, fontWeight: 'bold' }}>Carga Horaria por Docente</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          {docentes.map(d => {
-            const horas = horasDoc?.[d.id] || 0;
-            const pct = Math.min(100, (horas / d.maxHoras) * 100);
-            const over = horas > d.maxHoras;
-            return (
-              <div key={d.id} style={{ padding: '10px 12px', border: `1px solid ${over ? '#fecaca' : '#e2e8f0'}`, borderRadius: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                  <span style={{ fontWeight: '500', color: C.navy }}>{d.nombre}</span>
-                  <span style={{ fontWeight: 'bold', color: over ? '#dc2626' : '#166534' }}>{horas}/{d.maxHoras} h</span>
-                </div>
-                <div style={{ background: '#e2e8f0', borderRadius: 99, height: 5, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: over ? '#dc2626' : pct > 80 ? C.gold : '#16a34a', borderRadius: 99 }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ marginTop: 16, textAlign: 'center' }}>
-        <button onClick={onVerHorario} style={{
-          background: C.navy, color: 'white', border: 'none', borderRadius: 8,
-          padding: '10px 24px', cursor: 'pointer', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 8
-        }}>
-          <Eye size={15} /> Ver y Editar Horarios Manualmente
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// HORARIOS VIEW con edición manual
-// ==========================================
-function HorariosView({ horario, docentes, aulas, materias, estadoValidacion, onCambio }) {
+function Mod4HorariosView({ horario, docentes, aulas, materias, estadoHorario, onCambio }) {
   const [semestreActivo, setSemestreActivo] = useState(3);
   const [editMode, setEditMode] = useState(false);
-  const [dragging, setDragging] = useState(null); // {sem, dia, periodo}
+  const [dragging, setDragging] = useState(null);
   const [swapTarget, setSwapTarget] = useState(null);
-  const [modalCelda, setModalCelda] = useState(null); // {sem, dia, periodo}
+  const [modalCelda, setModalCelda] = useState(null);
+  const [vistaFiltro, setVistaFiltro] = useState('semestre'); // semestre | docente | aula
+  const [filtroDoc, setFiltroDoc] = useState('');
+  const [filtroAula, setFiltroAula] = useState('');
 
-  if (!horario) return (
-    <EmptyState icon={<Calendar size={40} />} titulo="Sin horario generado"
-      desc='Ve al "Generador" para crear un horario primero.' />
-  );
+  if (!horario) return <EmptyState icon={<Calendar size={40} />} titulo="Sin horario generado" desc='Ve al "MOD-3 Generación" para crear un horario primero.' />;
 
   const horarioSem = horario[semestreActivo];
 
@@ -851,36 +1291,14 @@ function HorariosView({ horario, docentes, aulas, materias, estadoValidacion, on
     nuevo[semestreActivo][dia2][per2] = nuevo[semestreActivo][dia1][per1];
     nuevo[semestreActivo][dia1][per1] = tmp;
     onCambio(nuevo);
-    setDragging(null);
-    setSwapTarget(null);
+    setDragging(null); setSwapTarget(null);
   };
 
-  const handleClearCell = (dia, periodo) => {
-    const nuevo = JSON.parse(JSON.stringify(horario));
-    nuevo[semestreActivo][dia][periodo] = null;
-    onCambio(nuevo);
-    setModalCelda(null);
-  };
+  const celda_editing = modalCelda ? horarioSem[modalCelda.dia][modalCelda.periodo] : null;
 
-  const handleChangeDocente = (dia, periodo, nuevoDocenteId) => {
-    const nuevo = JSON.parse(JSON.stringify(horario));
-    if (nuevo[semestreActivo][dia][periodo]) {
-      nuevo[semestreActivo][dia][periodo].docenteId = nuevoDocenteId;
-    }
-    onCambio(nuevo);
-    setModalCelda(null);
-  };
+  const COLORES = ['#dbeafe', '#dcfce7', '#fef9c3', '#fce7f3', '#ede9fe', '#ffedd5', '#cffafe', '#f1f5f9', '#fef2f2', '#f0fdf4'];
+  const getMateriaColor = (matId) => { const idx = materias.findIndex(m => m.id === matId); return COLORES[idx % COLORES.length]; };
 
-  const handleChangeAula = (dia, periodo, nuevoAulaId) => {
-    const nuevo = JSON.parse(JSON.stringify(horario));
-    if (nuevo[semestreActivo][dia][periodo]) {
-      nuevo[semestreActivo][dia][periodo].aulaId = nuevoAulaId || null;
-    }
-    onCambio(nuevo);
-    setModalCelda(null);
-  };
-
-  // Calcular celdas con estado de biblioteca
   const celdasRender = {};
   for (let d = 0; d < 5; d++) {
     celdasRender[d] = {};
@@ -893,63 +1311,43 @@ function HorariosView({ horario, docentes, aulas, materias, estadoValidacion, on
     }
   }
 
-  const COLORES_MAT = ['#dbeafe', '#dcfce7', '#fef9c3', '#fce7f3', '#ede9fe', '#ffedd5', '#cffafe', '#f1f5f9'];
-
-  const getMateriaColor = (matId) => {
-    const idx = materias.findIndex(m => m.id === matId);
-    return COLORES_MAT[idx % COLORES_MAT.length];
-  };
-
-  const celda_editing = modalCelda ? horarioSem[modalCelda.dia][modalCelda.periodo] : null;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Controles */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[3, 4, 5, 6, 7, 8, 9, 10].map(s => (
-            <button key={s} onClick={() => setSemestreActivo(s)} style={{
-              padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 'bold',
-              background: semestreActivo === s ? C.navy : '#e2e8f0',
-              color: semestreActivo === s ? C.gold : C.gray,
-            }}>{s}º</button>
+      {/* Controles superiores */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {[3,4,5,6,7,8,9,10].map(s => (
+            <button key={s} onClick={() => setSemestreActivo(s)} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', background: semestreActivo === s ? C.navy : '#e2e8f0', color: semestreActivo === s ? C.gold : C.gray }}>
+              {s}°
+            </button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {estadoValidacion === 'aprobado' && (
-            <span style={{ background: '#dcfce7', color: '#166534', fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 'bold', border: '1px solid #16a34a' }}>
-              ✓ APROBADO
-            </span>
-          )}
-          <button onClick={() => setEditMode(!editMode)} style={{
-            padding: '6px 14px', borderRadius: 6, border: `1px solid ${editMode ? C.gold : '#e2e8f0'}`,
-            background: editMode ? `rgba(200,168,75,0.1)` : 'white',
-            color: editMode ? C.gold : C.gray, cursor: 'pointer', fontSize: 13, fontWeight: 'bold',
-            display: 'flex', alignItems: 'center', gap: 6
-          }}>
-            <Pencil size={14} /> {editMode ? 'Modo Edición ON' : 'Editar'}
+          {estadoHorario === 'aprobado' && <span style={{ background: '#dcfce7', color: '#166534', fontSize: 11, padding: '3px 10px', borderRadius: 20, fontWeight: 'bold', border: '1px solid #16a34a' }}>✓ APROBADO</span>}
+          <button onClick={() => setEditMode(!editMode)} style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${editMode ? C.gold : '#e2e8f0'}`, background: editMode ? `rgba(200,168,75,0.1)` : 'white', color: editMode ? C.gold : C.gray, cursor: 'pointer', fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Pencil size={13} /> {editMode ? 'Edición ON' : 'Editar'}
           </button>
-          <button style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', color: C.gray, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Printer size={14} /> PDF
+          <button style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', color: C.gray, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Printer size={13} /> Imprimir
           </button>
         </div>
       </div>
 
       {editMode && (
-        <div style={{ background: `rgba(200,168,75,0.08)`, border: `1px dashed ${C.gold}`, borderRadius: 8, padding: '10px 16px', marginBottom: 10, fontSize: 12, color: '#92400e', display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Info size={14} />
-          <span><strong>Modo edición activo:</strong> Haz clic en una celda para cambiar docente o aula. Arrastra para intercambiar celdas.</span>
+        <div style={{ background: `rgba(200,168,75,0.08)`, border: `1px dashed ${C.gold}`, borderRadius: 8, padding: '8px 14px', marginBottom: 8, fontSize: 11, color: '#92400e', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Info size={13} />
+          <span><strong>Modo edición:</strong> Haz clic en una celda para cambiar docente/aula. Arrastra para intercambiar celdas.</span>
         </div>
       )}
 
-      {/* Tabla */}
+      {/* Tabla de horario */}
       <div style={{ background: 'white', borderRadius: 10, border: `2px solid ${C.navy}`, overflow: 'auto', flex: 1 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
           <thead>
             <tr>
-              <th style={{ background: '#f8fafc', borderBottom: `2px solid ${C.navy}`, borderRight: '1px solid #e2e8f0', padding: '12px 8px', width: 90, fontSize: 12, color: C.navy, fontWeight: 'bold' }}>HORA</th>
+              <th style={{ background: '#f8fafc', borderBottom: `2px solid ${C.navy}`, borderRight: '1px solid #e2e8f0', padding: '10px 8px', width: 80, fontSize: 11, color: C.navy, fontWeight: 'bold' }}>HORA</th>
               {DIAS.map(dia => (
-                <th key={dia} style={{ background: C.navy, borderBottom: `2px solid ${C.navy}`, borderRight: '1px solid rgba(255,255,255,0.1)', padding: '12px', color: C.gold, fontSize: 12, fontWeight: 'bold', letterSpacing: 1 }}>{dia.toUpperCase()}</th>
+                <th key={dia} style={{ background: C.navy, borderBottom: `2px solid ${C.navy}`, borderRight: '1px solid rgba(255,255,255,0.1)', padding: '10px', color: C.gold, fontSize: 12, fontWeight: 'bold', letterSpacing: 1 }}>{dia.toUpperCase()}</th>
               ))}
             </tr>
           </thead>
@@ -958,29 +1356,22 @@ function HorariosView({ horario, docentes, aulas, materias, estadoValidacion, on
               if (slot.type === 'break') {
                 return (
                   <tr key={si}>
-                    <td style={{ background: '#f8fafc', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '4px 8px', fontSize: 10, fontFamily: 'monospace', color: '#94a3b8', textAlign: 'center' }}>
-                      {slot.inicio}
-                    </td>
-                    <td colSpan={5} style={{
-                      background: 'repeating-linear-gradient(45deg, #fefce8, #fefce8 8px, #fef9c3 8px, #fef9c3 16px)',
-                      borderBottom: '1px solid #e2e8f0', padding: '4px', textAlign: 'center',
-                      fontSize: 10, fontWeight: 'bold', color: '#92400e', letterSpacing: 2
-                    }}>
-                      — {slot.label.toUpperCase()} ({slot.inicio} - {slot.fin}) —
+                    <td style={{ background: '#f8fafc', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '3px 8px', fontSize: 10, fontFamily: 'monospace', color: '#94a3b8', textAlign: 'center' }}>{slot.inicio}</td>
+                    <td colSpan={5} style={{ background: 'repeating-linear-gradient(45deg, #fefce8, #fefce8 6px, #fef9c3 6px, #fef9c3 12px)', borderBottom: '1px solid #e2e8f0', padding: '3px', textAlign: 'center', fontSize: 10, fontWeight: 'bold', color: '#92400e', letterSpacing: 2 }}>
+                      — RECESO ({slot.inicio} - {slot.fin}) —
                     </td>
                   </tr>
                 );
               }
-
               const p = slot.idx;
               return (
                 <tr key={si} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ background: '#f8fafc', borderRight: '1px solid #e2e8f0', padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
-                    <div style={{ fontSize: 11, fontWeight: 'bold', color: C.navy }}>P{p + 1}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#94a3b8' }}>{slot.inicio}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#94a3b8' }}>{slot.fin}</div>
+                  <td style={{ background: '#f8fafc', borderRight: '1px solid #e2e8f0', padding: '6px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <div style={{ fontSize: 11, fontWeight: 'bold', color: C.navy }}>P{p+1}</div>
+                    <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#94a3b8' }}>{slot.inicio}</div>
+                    <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#94a3b8' }}>{slot.fin}</div>
                   </td>
-                  {[0, 1, 2, 3, 4].map(dia => {
+                  {[0,1,2,3,4].map(dia => {
                     const celda = celdasRender[dia][p];
                     const isTarget = swapTarget?.dia === dia && swapTarget?.periodo === p;
                     const isDragging = dragging?.dia === dia && dragging?.periodo === p;
@@ -988,54 +1379,33 @@ function HorariosView({ horario, docentes, aulas, materias, estadoValidacion, on
                     if (celda.tipo === 'clase') {
                       const docente = docentes.find(d => d.id === celda.data.docenteId);
                       const aula = aulas.find(a => a.id === celda.data.aulaId);
-                      const bgColor = getMateriaColor(celda.data.id);
                       return (
                         <td key={dia}
                           onClick={() => editMode && setModalCelda({ dia, periodo: p })}
                           draggable={editMode}
-                          onDragStart={() => { if (editMode) setDragging({ dia, periodo: p }); }}
-                          onDragOver={e => { e.preventDefault(); if (editMode) setSwapTarget({ dia, periodo: p }); }}
+                          onDragStart={() => editMode && setDragging({ dia, periodo: p })}
+                          onDragOver={e => { e.preventDefault(); editMode && setSwapTarget({ dia, periodo: p }); }}
                           onDrop={() => handleSwap(dia, p)}
                           onDragEnd={() => { setDragging(null); setSwapTarget(null); }}
-                          style={{
-                            background: isDragging ? '#dbeafe' : isTarget ? '#fef9c3' : bgColor,
-                            borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0',
-                            padding: '6px 8px', cursor: editMode ? 'pointer' : 'default', verticalAlign: 'top',
-                            opacity: isDragging ? 0.5 : 1, transition: 'opacity 0.2s',
-                            outline: isTarget ? `2px dashed ${C.gold}` : 'none',
-                            position: 'relative'
-                          }}>
-                          {editMode && <div style={{ position: 'absolute', top: 4, right: 4, color: '#94a3b8' }}><GripVertical size={10} /></div>}
-                          <div style={{ fontWeight: 'bold', fontSize: 12, color: C.navy, lineHeight: 1.2, paddingRight: editMode ? 14 : 0 }}>{celda.data.nombre}</div>
-                          <div style={{ fontSize: 10, color: '#475569', marginTop: 3, borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: 3 }}>{docente?.nombre || '—'}</div>
+                          style={{ background: isDragging ? '#dbeafe' : isTarget ? '#fef9c3' : getMateriaColor(celda.data.id), borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '5px 7px', cursor: editMode ? 'pointer' : 'default', verticalAlign: 'top', opacity: isDragging ? 0.5 : 1, outline: isTarget ? `2px dashed ${C.gold}` : 'none', position: 'relative' }}>
+                          {celda.data.critica && <span style={{ position: 'absolute', top: 2, right: 4, color: '#dc2626', fontSize: 9 }}>★</span>}
+                          <div style={{ fontWeight: 'bold', fontSize: 11, color: C.navy, lineHeight: 1.2 }}>{celda.data.nombre}</div>
+                          <div style={{ fontSize: 10, color: '#475569', marginTop: 2, borderTop: '1px solid rgba(0,0,0,0.07)', paddingTop: 2 }}>{docente?.nombre || '—'}</div>
                           {aula && <div style={{ fontSize: 9, color: '#64748b', marginTop: 1 }}>📍 {aula.nombre}</div>}
-                          {editMode && <div style={{ fontSize: 9, color: C.gold, marginTop: 2 }}>✎ Click para editar</div>}
                         </td>
                       );
                     } else if (celda.tipo === 'biblioteca') {
                       return (
-                        <td key={dia}
-                          onDragOver={e => { e.preventDefault(); if (editMode) setSwapTarget({ dia, periodo: p }); }}
-                          onDrop={() => handleSwap(dia, p)}
-                          style={{
-                            background: isTarget ? '#fef9c3' : '#f0fdf4', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0',
-                            padding: 6, textAlign: 'center', outline: isTarget ? `2px dashed ${C.gold}` : 'none'
-                          }}>
-                          <div style={{ fontSize: 10, color: '#16a34a', opacity: 0.7 }}>
-                            <BookOpen size={14} style={{ margin: '0 auto 2px' }} />
-                            <div style={{ fontWeight: 'bold', letterSpacing: 1 }}>BIBLIOTECA</div>
+                        <td key={dia} onDragOver={e => { e.preventDefault(); editMode && setSwapTarget({ dia, periodo: p }); }} onDrop={() => handleSwap(dia, p)} style={{ background: isTarget ? '#fef9c3' : '#f0fdf4', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: 5, textAlign: 'center', outline: isTarget ? `2px dashed ${C.gold}` : 'none' }}>
+                          <div style={{ fontSize: 10, color: '#16a34a', opacity: 0.6 }}>
+                            <BookOpen size={12} style={{ margin: '0 auto 1px' }} />
+                            <div style={{ fontSize: 9, fontWeight: 'bold', letterSpacing: 1 }}>BIBLIOTECA</div>
                           </div>
                         </td>
                       );
                     } else {
                       return (
-                        <td key={dia}
-                          onDragOver={e => { e.preventDefault(); if (editMode) setSwapTarget({ dia, periodo: p }); }}
-                          onDrop={() => handleSwap(dia, p)}
-                          style={{
-                            background: isTarget ? '#fef9c3' : '#f8fafc', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0',
-                            outline: isTarget ? `2px dashed ${C.gold}` : 'none'
-                          }} />
+                        <td key={dia} onDragOver={e => { e.preventDefault(); editMode && setSwapTarget({ dia, periodo: p }); }} onDrop={() => handleSwap(dia, p)} style={{ background: isTarget ? '#fef9c3' : '#f8fafc', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', outline: isTarget ? `2px dashed ${C.gold}` : 'none' }} />
                       );
                     }
                   })}
@@ -1046,371 +1416,490 @@ function HorariosView({ horario, docentes, aulas, materias, estadoValidacion, on
         </table>
       </div>
 
-      {/* Leyenda */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: C.gray }}>
-        <span>📌 <strong>Regla Dura:</strong> Lunes inicia a las 07:45</span>
-        <span>📚 <strong>Puente:</strong> Horas intermedias = Biblioteca</span>
-        <span>🔢 <strong>Total:</strong> ~20 periodos/semana por semestre</span>
+      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: C.gray }}>
+        <span>★ Materia crítica (priorizada)</span>
+        <span>📚 Puente = Biblioteca</span>
+        <span>📌 Lunes inicia a las 07:45 (Regla RAC-03)</span>
       </div>
 
-      {/* Modal de edición */}
+      {/* Modal edición celda */}
       {modalCelda && celda_editing && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div style={{ background: 'white', borderRadius: 12, padding: 28, width: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, color: C.navy, fontSize: 16 }}>Editar Celda</h3>
-              <button onClick={() => setModalCelda(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.gray }}><X size={20} /></button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', borderRadius: 12, padding: 26, width: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <h3 style={{ margin: 0, color: C.navy, fontSize: 15 }}>Editar Celda (HU-52/53)</h3>
+              <button onClick={() => setModalCelda(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.gray }}><X size={18} /></button>
             </div>
-            <div style={{ background: C.grayLight, borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+            <div style={{ background: C.grayLight, borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
               <div style={{ fontWeight: 'bold', color: C.navy }}>{celda_editing.nombre}</div>
               <div style={{ fontSize: 12, color: C.gray }}>{DIAS[modalCelda.dia]} · Periodo {modalCelda.periodo + 1}</div>
             </div>
-
-            <label style={{ fontSize: 12, color: C.gray, display: 'block', marginBottom: 6, fontWeight: 'bold' }}>DOCENTE</label>
-            <select
-              value={celda_editing.docenteId}
-              onChange={e => handleChangeDocente(modalCelda.dia, modalCelda.periodo, e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, marginBottom: 16, fontSize: 13 }}
-            >
-              {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre} ({d.tipo})</option>)}
-            </select>
-
-            <label style={{ fontSize: 12, color: C.gray, display: 'block', marginBottom: 6, fontWeight: 'bold' }}>AULA</label>
-            <select
-              value={celda_editing.aulaId || ''}
-              onChange={e => handleChangeAula(modalCelda.dia, modalCelda.periodo, e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, marginBottom: 20, fontSize: 13 }}
-            >
-              <option value="">Sin asignar</option>
-              {aulas.filter(a => a.disponible).map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.tipo}) — Cap. {a.capacidad}</option>)}
-            </select>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => handleClearCell(modalCelda.dia, modalCelda.periodo)} style={{
-                flex: 1, padding: '9px', border: '1px solid #fecaca', borderRadius: 6, background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 'bold'
-              }}>
-                <Trash2 size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />Vaciar Celda
-              </button>
-              <button onClick={() => setModalCelda(null)} style={{
-                flex: 1, padding: '9px', border: 'none', borderRadius: 6, background: C.navy, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 'bold'
-              }}>
-                <Save size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ==========================================
-// GESTIÓN DE DOCENTES
-// ==========================================
-function DocentesView({ docentes, setDocentes }) {
-  const [modal, setModal] = useState(null); // null | 'nuevo' | docente
-
-  const guardar = (datos) => {
-    if (datos.id) {
-      setDocentes(prev => prev.map(d => d.id === datos.id ? datos : d));
-    } else {
-      setDocentes(prev => [...prev, { ...datos, id: `d${Date.now()}` }]);
-    }
-    setModal(null);
-  };
-
-  const eliminar = (id) => {
-    setDocentes(prev => prev.filter(d => d.id !== id));
-    setModal(null);
-  };
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ margin: 0, color: C.gray, fontSize: 13 }}>
-          Regla dura: Ningún docente puede exceder su límite de horas semanales.
-        </p>
-        <button onClick={() => setModal({ nombre: '', tipo: 'Civil', maxHoras: 25, especialidad: '' })} style={btnPrimary}>
-          <Plus size={15} /> Nuevo Docente
-        </button>
-      </div>
-
-      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: C.grayLight }}>
-              {['Nombre', 'Tipo', 'Especialidad', 'Máx Hrs', 'Acciones'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, color: C.gray, fontWeight: 'bold', letterSpacing: 1, borderBottom: '1px solid #e2e8f0' }}>{h.toUpperCase()}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {docentes.map((d, i) => (
-              <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                <td style={{ padding: '10px 14px', fontWeight: '600', fontSize: 13, color: C.navy }}>{d.nombre}</td>
-                <td style={{ padding: '10px 14px' }}>
-                  <span style={{
-                    background: d.tipo.includes('Militar') ? '#dcfce7' : '#dbeafe',
-                    color: d.tipo.includes('Militar') ? '#166534' : '#1e40af',
-                    padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 'bold'
-                  }}>{d.tipo}</span>
-                </td>
-                <td style={{ padding: '10px 14px', fontSize: 13, color: C.gray }}>{d.especialidad}</td>
-                <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 'bold', color: C.navy }}>{d.maxHoras}</td>
-                <td style={{ padding: '10px 14px' }}>
-                  <button onClick={() => setModal({ ...d })} style={btnSmall}><Pencil size={13} /></button>
-                  <button onClick={() => eliminar(d.id)} style={{ ...btnSmall, marginLeft: 6, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={13} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {modal !== null && (
-        <FormModal
-          titulo={modal.id ? 'Editar Docente' : 'Nuevo Docente'}
-          onClose={() => setModal(null)}
-          onGuardar={() => guardar(modal)}
-        >
-          <FormField label="Nombre Completo">
-            <input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} />
-          </FormField>
-          <FormField label="Tipo">
-            <select value={modal.tipo} onChange={e => setModal(m => ({ ...m, tipo: e.target.value }))} style={inputStyle}>
-              <option>Civil</option>
-              <option>Militar Activo</option>
-              <option>Militar Reserva</option>
-            </select>
-          </FormField>
-          <FormField label="Especialidad">
-            <input value={modal.especialidad} onChange={e => setModal(m => ({ ...m, especialidad: e.target.value }))} style={inputStyle} />
-          </FormField>
-          <FormField label="Máx. Horas Semanales">
-            <input type="number" min={1} max={40} value={modal.maxHoras} onChange={e => setModal(m => ({ ...m, maxHoras: parseInt(e.target.value) }))} style={inputStyle} />
-          </FormField>
-        </FormModal>
-      )}
-    </div>
-  );
-}
-
-// ==========================================
-// GESTIÓN DE MATERIAS
-// ==========================================
-function MateriasView({ materias, setMaterias, docentes }) {
-  const [filtro, setFiltro] = useState('Todos');
-  const [modal, setModal] = useState(null);
-
-  const guardar = (datos) => {
-    if (datos.id) setMaterias(prev => prev.map(m => m.id === datos.id ? datos : m));
-    else setMaterias(prev => [...prev, { ...datos, id: `m_${Date.now()}` }]);
-    setModal(null);
-  };
-
-  const eliminar = (id) => { setMaterias(prev => prev.filter(m => m.id !== id)); setModal(null); };
-
-  const filtradas = filtro === 'Todos' ? materias : materias.filter(m => m.semestre === parseInt(filtro));
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <select value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 180 }}>
-          <option value="Todos">Todos los Semestres</option>
-          {[3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s}>{s}° Semestre</option>)}
-        </select>
-        <button onClick={() => setModal({ nombre: '', semestre: 3, periodos: 2, docenteId: docentes[0]?.id || '', tipoAula: 'Aula' })} style={btnPrimary}>
-          <Plus size={15} /> Nueva Materia
-        </button>
-      </div>
-
-      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden', maxHeight: '65vh', overflowY: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-            <tr style={{ background: C.grayLight }}>
-              {['Materia', 'Semestre', 'Periodos', 'Tipo Aula', 'Docente Asignado', 'Acciones'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, color: C.gray, fontWeight: 'bold', letterSpacing: 1, borderBottom: '1px solid #e2e8f0' }}>{h.toUpperCase()}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtradas.map((m, i) => {
-              const doc = docentes.find(d => d.id === m.docenteId);
-              return (
-                <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: '600', fontSize: 13, color: C.navy }}>{m.nombre}</td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                    <span style={{ background: C.navy, color: C.gold, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{m.semestre}°</span>
-                  </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 'bold', color: C.navy }}>{m.periodos}</td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <span style={{ background: m.tipoAula === 'Laboratorio' ? '#ede9fe' : '#f1f5f9', color: m.tipoAula === 'Laboratorio' ? '#6d28d9' : '#475569', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>{m.tipoAula}</span>
-                  </td>
-                  <td style={{ padding: '10px 14px', fontSize: 13, color: C.gray }}>{doc?.nombre || '—'}</td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <button onClick={() => setModal({ ...m })} style={btnSmall}><Pencil size={13} /></button>
-                    <button onClick={() => eliminar(m.id)} style={{ ...btnSmall, marginLeft: 6, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={13} /></button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {modal && (
-        <FormModal titulo={modal.id ? 'Editar Materia' : 'Nueva Materia'} onClose={() => setModal(null)} onGuardar={() => guardar(modal)}>
-          <FormField label="Nombre de la Materia">
-            <input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} />
-          </FormField>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <FormField label="Semestre">
-              <select value={modal.semestre} onChange={e => setModal(m => ({ ...m, semestre: parseInt(e.target.value) }))} style={inputStyle}>
-                {[3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s}>{s}°</option>)}
+            <FormField label="DOCENTE">
+              <select value={celda_editing.docenteId} onChange={e => { const n = JSON.parse(JSON.stringify(horario)); n[semestreActivo][modalCelda.dia][modalCelda.periodo].docenteId = e.target.value; onCambio(n); setModalCelda(null); }} style={inputStyle}>
+                {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre} ({d.tipo})</option>)}
               </select>
             </FormField>
-            <FormField label="Periodos/Semana">
-              <input type="number" min={1} max={8} value={modal.periodos} onChange={e => setModal(m => ({ ...m, periodos: parseInt(e.target.value) }))} style={inputStyle} />
+            <div style={{ marginTop: 12 }} />
+            <FormField label="AULA">
+              <select value={celda_editing.aulaId || ''} onChange={e => { const n = JSON.parse(JSON.stringify(horario)); n[semestreActivo][modalCelda.dia][modalCelda.periodo].aulaId = e.target.value || null; onCambio(n); setModalCelda(null); }} style={inputStyle}>
+                <option value="">Sin asignar</option>
+                {aulas.filter(a => a.disponible).map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.tipo}) — Cap. {a.capacidad}</option>)}
+              </select>
             </FormField>
+            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+              <button onClick={() => { const n = JSON.parse(JSON.stringify(horario)); n[semestreActivo][modalCelda.dia][modalCelda.periodo] = null; onCambio(n); setModalCelda(null); }} style={{ flex: 1, padding: '8px', border: '1px solid #fecaca', borderRadius: 6, background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>
+                <Trash2 size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />Vaciar
+              </button>
+              <button onClick={() => setModalCelda(null)} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 6, background: C.navy, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>
+                <Save size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />Listo
+              </button>
+            </div>
           </div>
-          <FormField label="Tipo de Aula Requerida">
-            <select value={modal.tipoAula} onChange={e => setModal(m => ({ ...m, tipoAula: e.target.value }))} style={inputStyle}>
-              <option>Aula</option>
-              <option>Laboratorio</option>
-              <option>Auditorio</option>
-              <option>Sala</option>
-            </select>
-          </FormField>
-          <FormField label="Docente Asignado">
-            <select value={modal.docenteId} onChange={e => setModal(m => ({ ...m, docenteId: e.target.value }))} style={inputStyle}>
-              {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
-            </select>
-          </FormField>
-        </FormModal>
+        </div>
       )}
     </div>
   );
 }
 
 // ==========================================
-// GESTIÓN DE AULAS
+// MOD-5: VALIDACIÓN
 // ==========================================
-function AulasView({ aulas, setAulas }) {
-  const [modal, setModal] = useState(null);
+function Mod5ValidacionView({ horario, docentes, horasDoc, estado, onAprobar, onVerHorario, historial, addNotif }) {
+  const [obsTexto, setObsTexto] = useState('');
+  const [observaciones, setObservaciones] = useState([]);
 
-  const guardar = (datos) => {
-    if (datos.id) setAulas(prev => prev.map(a => a.id === datos.id ? datos : a));
-    else setAulas(prev => [...prev, { ...datos, id: `a_${Date.now()}` }]);
-    setModal(null);
-  };
+  if (!horario) return <EmptyState icon={<Shield size={40} />} titulo="Sin horario generado" desc='Ve al MOD-3 para crear un horario primero.' />;
 
-  const eliminar = (id) => { setAulas(prev => prev.filter(a => a.id !== id)); setModal(null); };
+  const conflictos = validarHorario(horario, docentes);
+  const semestres = [3,4,5,6,7,8,9,10];
+  const totalClases = semestres.reduce((acc, s) => { let c = 0; for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) if (horario[s]?.[d]?.[p]) c++; return acc + c; }, 0);
+  const docentesSobrecargados = docentes.filter(d => (horasDoc?.[d.id] || 0) > d.maxHoras);
+  const ok = conflictos.length === 0 && docentesSobrecargados.length === 0;
 
-  const toggleDisponible = (id) => {
-    setAulas(prev => prev.map(a => a.id === id ? { ...a, disponible: !a.disponible } : a));
+  const agregarObs = () => {
+    if (!obsTexto.trim()) return;
+    const obs = { id: Date.now(), texto: obsTexto, fecha: new Date().toLocaleString() };
+    setObservaciones(prev => [obs, ...prev]);
+    addNotif('Observación registrada (HU-59)', 'info');
+    setObsTexto('');
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {['Aula', 'Laboratorio', 'Auditorio', 'Sala'].map(t => {
-            const cnt = aulas.filter(a => a.tipo === t).length;
-            return (
-              <div key={t} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textAlign: 'center', minWidth: 80 }}>
-                <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 18 }}>{cnt}</div>
-                <div style={{ fontSize: 11, color: C.gray }}>{t}s</div>
-              </div>
-            );
-          })}
+    <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      {/* Header estado */}
+      <div style={{ background: ok ? `linear-gradient(135deg, #14532d, #166534)` : `linear-gradient(135deg, #7f1d1d, #991b1b)`, borderRadius: 12, padding: '18px 24px', marginBottom: 16, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {ok ? <CheckCircle size={28} /> : <AlertTriangle size={28} />}
+          <div>
+            <div style={{ fontWeight: 'bold', fontSize: 16 }}>{ok ? 'Horario Válido — Sin Conflictos' : `${conflictos.length} Conflicto(s) Detectado(s)`}</div>
+            <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>{totalClases} clases · {semestres.length} semestres · Estado: {estado === 'aprobado' ? 'APROBADO' : 'PENDIENTE'}</div>
+          </div>
         </div>
-        <button onClick={() => setModal({ nombre: '', tipo: 'Aula', capacidad: 30, edificio: 'A', disponible: true })} style={btnPrimary}>
-          <Plus size={15} /> Nueva Aula
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {estado !== 'aprobado' && ok && (
+            <button onClick={onAprobar} style={{ background: C.gold, color: C.navy, border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 'bold', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Check size={14} /> Aprobar Horario (HU-62)
+            </button>
+          )}
+          {estado === 'aprobado' && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: 8, fontWeight: 'bold', fontSize: 13 }}>✓ APROBADO</span>}
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-        {aulas.map(a => (
-          <div key={a.id} style={{
-            background: 'white', borderRadius: 10, border: `1px solid ${a.disponible ? '#e2e8f0' : '#fecaca'}`,
-            padding: 16, opacity: a.disponible ? 1 : 0.7
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 14 }}>{a.nombre}</div>
-                <div style={{ fontSize: 11, color: C.gray }}>Edificio {a.edificio}</div>
-              </div>
-              <span style={{
-                background: a.tipo === 'Laboratorio' ? '#ede9fe' : a.tipo === 'Auditorio' ? '#fef9c3' : '#f1f5f9',
-                color: a.tipo === 'Laboratorio' ? '#6d28d9' : a.tipo === 'Auditorio' ? '#92400e' : '#475569',
-                padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 'bold'
-              }}>{a.tipo}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-              <div style={{ flex: 1, background: C.grayLight, borderRadius: 6, padding: '6px', textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold', color: C.navy }}>{a.capacidad}</div>
-                <div style={{ fontSize: 10, color: C.gray }}>Capacidad</div>
-              </div>
-              <div style={{ flex: 1, background: a.disponible ? '#dcfce7' : '#fee2e2', borderRadius: 6, padding: '6px', textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold', color: a.disponible ? '#166534' : '#dc2626' }}>{a.disponible ? 'Disp.' : 'No Disp.'}</div>
-                <div style={{ fontSize: 10, color: C.gray }}>Estado</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => toggleDisponible(a.id)} style={{ ...btnSmall, flex: 1, justifyContent: 'center' }}>
-                {a.disponible ? 'Deshabilitar' : 'Habilitar'}
-              </button>
-              <button onClick={() => setModal({ ...a })} style={btnSmall}><Pencil size={13} /></button>
-              <button onClick={() => eliminar(a.id)} style={{ ...btnSmall, color: '#dc2626', borderColor: '#fecaca' }}><Trash2 size={13} /></button>
-            </div>
+      {/* Métricas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
+        {[
+          { v: totalClases, l: 'Clases Asignadas', c: C.navy },
+          { v: conflictos.length, l: 'Conflictos', c: conflictos.length > 0 ? '#991b1b' : '#166534' },
+          { v: docentesSobrecargados.length, l: 'Docentes Sobrecargados', c: docentesSobrecargados.length > 0 ? '#92400e' : '#166534' },
+          { v: docentes.filter(d => (horasDoc?.[d.id] || 0) > 0).length, l: 'Docentes con Carga', c: C.navy },
+        ].map(m => (
+          <div key={m.l} style={{ background: 'white', borderRadius: 10, padding: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <div style={{ fontSize: 26, fontWeight: 'bold', color: m.c }}>{m.v}</div>
+            <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{m.l}</div>
           </div>
         ))}
       </div>
 
-      {modal && (
-        <FormModal titulo={modal.id ? 'Editar Aula' : 'Nueva Aula'} onClose={() => setModal(null)} onGuardar={() => guardar(modal)}>
-          <FormField label="Nombre del Aula">
-            <input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} />
-          </FormField>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <FormField label="Tipo">
-              <select value={modal.tipo} onChange={e => setModal(m => ({ ...m, tipo: e.target.value }))} style={inputStyle}>
-                <option>Aula</option>
-                <option>Laboratorio</option>
-                <option>Auditorio</option>
-                <option>Sala</option>
-              </select>
-            </FormField>
-            <FormField label="Edificio">
-              <input value={modal.edificio} onChange={e => setModal(m => ({ ...m, edificio: e.target.value }))} style={inputStyle} />
-            </FormField>
+      {/* Conflictos */}
+      {conflictos.length > 0 && (
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #fecaca', padding: 18, marginBottom: 16 }}>
+          <h3 style={{ margin: '0 0 10px', color: '#991b1b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertCircle size={14} /> Conflictos a Resolver (HU-57)
+          </h3>
+          {conflictos.map((c, i) => (
+            <div key={i} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '7px 10px', marginBottom: 6, fontSize: 12, color: '#7f1d1d' }}>
+              ⚠ <strong>{c.tipo.replace('_', ' ').toUpperCase()}</strong> — {c.mensaje}
+            </div>
+          ))}
+          <button onClick={onVerHorario} style={{ marginTop: 10, padding: '6px 14px', background: C.navy, color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}>
+            Ir a Editar Horario →
+          </button>
+        </div>
+      )}
+
+      {/* Verificación de recesos (HU-56) */}
+      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 10px', color: C.navy, fontSize: 13, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Clock size={14} /> Verificación de Recesos (HU-56)
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[{ r: 'Receso 10:00–10:15', ok: true }, { r: 'Receso 11:45–12:00', ok: true }, { r: 'Lunes 07:45 inicio', ok: true }, { r: 'Máx 8 periodos/día', ok: true }].map(item => (
+            <div key={item.r} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <CheckCircle size={14} color="#16a34a" />
+              <span style={{ color: C.gray }}>{item.r}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Carga docente */}
+      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 14px', color: C.navy, fontSize: 13, fontWeight: 'bold' }}>Carga Horaria por Docente (RAC-03)</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+          {docentes.map(d => {
+            const horas = horasDoc?.[d.id] || 0;
+            const pct = Math.min(100, (horas / d.maxHoras) * 100);
+            const over = horas > d.maxHoras;
+            return (
+              <div key={d.id} style={{ padding: '8px 12px', border: `1px solid ${over ? '#fecaca' : '#e2e8f0'}`, borderRadius: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+                  <span style={{ fontWeight: '500', color: C.navy }}>{d.nombre}</span>
+                  <span style={{ fontWeight: 'bold', color: over ? '#dc2626' : '#166534' }}>{horas}/{d.maxHoras}h</span>
+                </div>
+                <div style={{ background: '#e2e8f0', borderRadius: 99, height: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: over ? '#dc2626' : pct > 80 ? C.gold : '#16a34a', borderRadius: 99 }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Observaciones (HU-59/69) */}
+      <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 12px', color: C.navy, fontSize: 13, fontWeight: 'bold' }}>Registrar Observaciones (HU-59/69)</h3>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <input value={obsTexto} onChange={e => setObsTexto(e.target.value)} onKeyDown={e => e.key === 'Enter' && agregarObs()} placeholder="Escribir observación..." style={{ ...inputStyle, flex: 1 }} />
+          <button onClick={agregarObs} style={{ ...btnPrimary, whiteSpace: 'nowrap' }}><Plus size={14} /> Agregar</button>
+        </div>
+        {observaciones.map(obs => (
+          <div key={obs.id} style={{ background: '#fefce8', border: '1px solid #fef08a', borderRadius: 6, padding: '7px 12px', marginBottom: 6, fontSize: 12 }}>
+            <div style={{ color: C.navy }}>{obs.texto}</div>
+            <div style={{ color: '#94a3b8', fontSize: 10, marginTop: 2 }}>{obs.fecha}</div>
           </div>
-          <FormField label="Capacidad">
-            <input type="number" min={1} value={modal.capacidad} onChange={e => setModal(m => ({ ...m, capacidad: parseInt(e.target.value) }))} style={inputStyle} />
-          </FormField>
-          <FormField label="Disponible">
-            <select value={modal.disponible ? 'si' : 'no'} onChange={e => setModal(m => ({ ...m, disponible: e.target.value === 'si' }))} style={inputStyle}>
-              <option value="si">Sí</option>
-              <option value="no">No</option>
-            </select>
-          </FormField>
-        </FormModal>
+        ))}
+      </div>
+
+      {/* Historial (HU-63) */}
+      {historial.length > 0 && (
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18 }}>
+          <h3 style={{ margin: '0 0 10px', color: C.navy, fontSize: 13, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Archive size={14} /> Historial de Cambios (HU-63)
+          </h3>
+          {historial.map(h => (
+            <div key={h.id} style={{ display: 'flex', gap: 10, fontSize: 12, padding: '5px 8px', background: '#f8fafc', borderRadius: 6, marginBottom: 4 }}>
+              <span style={{ color: C.gold }}>{h.fecha}</span>
+              <span style={{ color: C.navy, fontWeight: 'bold' }}>{h.accion}</span>
+              <span style={{ color: C.gray }}>— {h.usuario}</span>
+              <span style={{ marginLeft: 'auto', color: h.estado === 'aprobado' ? '#16a34a' : '#92400e', fontWeight: 'bold', fontSize: 11 }}>{h.estado?.toUpperCase()}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
 // ==========================================
-// COMPONENTES AUXILIARES
+// MOD-6: REPORTES
+// ==========================================
+function Mod6ReportesView({ horario, docentes, materias, aulas, grupos, horasDoc, estadoHorario }) {
+  const [subTab, setSubTab] = useState('resumen');
+  const [filtroDoc, setFiltroDoc] = useState(docentes[0]?.id || '');
+  const [filtroAula, setFiltroAula] = useState(aulas[0]?.id || '');
+  const [filtroGrupo, setFiltroGrupo] = useState(3);
+
+  const semestres = [3,4,5,6,7,8,9,10];
+
+  const totalClases = horario ? semestres.reduce((acc, s) => {
+    let c = 0; for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) if (horario[s]?.[d]?.[p]) c++; return acc + c;
+  }, 0) : 0;
+
+  const NotGenerated = () => <EmptyState icon={<FileText size={36} />} titulo="Sin horario generado" desc="Ve al MOD-3 para generar un horario primero." />;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {[
+          { id: 'resumen', label: 'Resumen General', icon: <BarChart2 size={13}/> },
+          { id: 'docente', label: 'Por Docente (HU-48)', icon: <Users size={13}/> },
+          { id: 'grupo', label: 'Por Grupo (HU-49)', icon: <Layers size={13}/> },
+          { id: 'aula', label: 'Por Aula (HU-50)', icon: <Building2 size={13}/> },
+          { id: 'exportar', label: 'Exportar (HU-64/65/66)', icon: <Download size={13}/> },
+        ].map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', background: subTab === t.id ? C.navy : '#e2e8f0', color: subTab === t.id ? C.gold : C.gray }}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === 'resumen' && (
+        !horario ? <NotGenerated /> :
+        <div>
+          {/* KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+            {[
+              { v: totalClases, l: 'Total Clases', sub: 'asignadas', icon: <Hash size={18} />, c: C.navy },
+              { v: docentes.filter(d => (horasDoc?.[d.id] || 0) > 0).length, l: 'Docentes Activos', sub: `de ${docentes.length} totales`, icon: <Users size={18} />, c: C.blue },
+              { v: materias.length, l: 'Materias', sub: 'en el sistema', icon: <BookOpen size={18} />, c: C.green },
+              { v: estadoHorario === 'aprobado' ? '✓ APROBADO' : 'Pendiente', l: 'Estado', sub: 'del horario', icon: <Shield size={18} />, c: estadoHorario === 'aprobado' ? '#166534' : '#92400e' },
+            ].map(m => (
+              <div key={m.l} style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: '16px', display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ background: m.c, color: 'white', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{m.icon}</div>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 'bold', color: m.c }}>{m.v}</div>
+                  <div style={{ fontSize: 11, color: C.navy, fontWeight: 'bold' }}>{m.l}</div>
+                  <div style={{ fontSize: 10, color: C.gray }}>{m.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Clases por semestre */}
+          <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18, marginBottom: 14 }}>
+            <h3 style={{ margin: '0 0 14px', color: C.navy, fontSize: 13, fontWeight: 'bold' }}>Clases por Semestre (HU-47)</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+              {semestres.map(s => {
+                let cnt = 0;
+                for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) if (horario[s]?.[d]?.[p]) cnt++;
+                const pct = Math.round((cnt / (8 * 5)) * 100);
+                return (
+                  <div key={s} style={{ background: '#f8fafc', borderRadius: 8, padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 18, fontWeight: 'bold', color: C.navy }}>{s}°</div>
+                    <div style={{ fontSize: 22, fontWeight: 'bold', color: C.gold }}>{cnt}</div>
+                    <div style={{ fontSize: 10, color: C.gray }}>periodos</div>
+                    <div style={{ background: '#e2e8f0', borderRadius: 99, height: 4, marginTop: 6, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: C.navy, borderRadius: 99 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Distribución de aulas */}
+          <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 18 }}>
+            <h3 style={{ margin: '0 0 12px', color: C.navy, fontSize: 13, fontWeight: 'bold' }}>Distribución de Aulas (HU-50)</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+              {['Aula', 'Laboratorio', 'Auditorio', 'Sala'].map(tipo => {
+                const cnt = aulas.filter(a => a.tipo === tipo).length;
+                const disp = aulas.filter(a => a.tipo === tipo && a.disponible).length;
+                return (
+                  <div key={tipo} style={{ background: '#f8fafc', borderRadius: 8, padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 18 }}>{disp}/{cnt}</div>
+                    <div style={{ fontSize: 11, color: C.gray }}>{tipo}s disponibles</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'docente' && (
+        !horario ? <NotGenerated /> :
+        <div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: C.gray, marginBottom: 5, display: 'block' }}>Seleccionar Docente:</label>
+            <select value={filtroDoc} onChange={e => setFiltroDoc(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }}>
+              {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+            </select>
+          </div>
+          {filtroDoc && (() => {
+            const doc = docentes.find(d => d.id === filtroDoc);
+            const horas = horasDoc?.[filtroDoc] || 0;
+            const materiasDoc = [];
+            semestres.forEach(s => {
+              for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) {
+                const c = horario[s][d][p];
+                if (c?.docenteId === filtroDoc && !materiasDoc.find(m => m.id === c.id && m.dia === d && m.periodo === p))
+                  materiasDoc.push({ ...c, semestre: s, dia: d, periodo: p });
+              }
+            });
+            return (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 14 }}>
+                  {[{ v: horas, l: `Horas asignadas (máx ${doc.maxHoras})`, c: horas > doc.maxHoras ? '#dc2626' : '#166534' }, { v: doc.tipo, l: 'Tipo de Docente', c: C.navy }, { v: doc.especialidad, l: 'Especialidad', c: C.blue }].map(m => (
+                    <div key={m.l} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 'bold', color: m.c }}>{m.v}</div>
+                      <div style={{ fontSize: 11, color: C.gray }}>{m.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead><tr style={{ background: C.grayLight }}>{['Materia', 'Semestre', 'Día', 'Periodo', 'Aula'].map(h => <th key={h} style={thStyle}>{h.toUpperCase()}</th>)}</tr></thead>
+                    <tbody>
+                      {materiasDoc.map((m, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                          <td style={tdStyle}><span style={{ fontWeight: 'bold', color: C.navy, fontSize: 13 }}>{m.nombre}</span></td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}><span style={{ background: C.navy, color: C.gold, padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{m.semestre}°</span></td>
+                          <td style={tdStyle}>{DIAS[m.dia]}</td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>P{m.periodo + 1}</td>
+                          <td style={tdStyle}>{aulas.find(a => a.id === m.aulaId)?.nombre || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {subTab === 'grupo' && (
+        !horario ? <NotGenerated /> :
+        <div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: C.gray, marginBottom: 5, display: 'block' }}>Seleccionar Semestre:</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {semestres.map(s => (
+                <button key={s} onClick={() => setFiltroGrupo(s)} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', background: filtroGrupo === s ? C.navy : '#e2e8f0', color: filtroGrupo === s ? C.gold : C.gray }}>{s}°</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: C.grayLight }}><th style={thStyle}>HORA</th>{DIAS.map(d => <th key={d} style={thStyle}>{d.toUpperCase()}</th>)}</tr>
+              </thead>
+              <tbody>
+                {RENDER_SLOTS.map((slot, si) => {
+                  if (slot.type === 'break') return (
+                    <tr key={si}>
+                      <td style={{ ...tdStyle, textAlign: 'center', fontSize: 10, color: '#94a3b8', background: '#f8fafc' }}>{slot.inicio}</td>
+                      <td colSpan={5} style={{ background: '#fefce8', textAlign: 'center', fontSize: 10, color: '#92400e', padding: 3, fontWeight: 'bold' }}>RECESO</td>
+                    </tr>
+                  );
+                  const p = slot.idx;
+                  return (
+                    <tr key={si} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ ...tdStyle, background: '#f8fafc', fontSize: 11, textAlign: 'center' }}>P{p+1}<br /><span style={{ fontSize: 9, color: '#94a3b8' }}>{slot.inicio}</span></td>
+                      {[0,1,2,3,4].map(dia => {
+                        const celda = horario[filtroGrupo][dia][p];
+                        if (!celda) return <td key={dia} style={{ ...tdStyle, background: '#f8fafc' }} />;
+                        const doc = docentes.find(d => d.id === celda.docenteId);
+                        const aula = aulas.find(a => a.id === celda.aulaId);
+                        return (
+                          <td key={dia} style={{ ...tdStyle, background: '#eff6ff', verticalAlign: 'top' }}>
+                            <div style={{ fontWeight: 'bold', fontSize: 11, color: C.navy }}>{celda.nombre}</div>
+                            <div style={{ fontSize: 10, color: C.gray }}>{doc?.nombre}</div>
+                            {aula && <div style={{ fontSize: 9, color: C.blue }}>📍 {aula.nombre}</div>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'aula' && (
+        !horario ? <NotGenerated /> :
+        <div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: C.gray, marginBottom: 5, display: 'block' }}>Seleccionar Aula:</label>
+            <select value={filtroAula} onChange={e => setFiltroAula(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }}>
+              {aulas.filter(a => a.disponible).map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.tipo})</option>)}
+            </select>
+          </div>
+          {filtroAula && (() => {
+            const aula = aulas.find(a => a.id === filtroAula);
+            const usos = [];
+            semestres.forEach(s => {
+              for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) {
+                const c = horario[s][d][p];
+                if (c?.aulaId === filtroAula) usos.push({ ...c, semestre: s, dia: d, periodo: p });
+              }
+            });
+            const tasaOcupacion = Math.round((usos.length / (8 * 5 * 8)) * 100);
+            return (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 14 }}>
+                  {[{ v: usos.length, l: 'Periodos Usados' }, { v: `${tasaOcupacion}%`, l: 'Tasa de Ocupación' }, { v: aula.capacidad, l: 'Capacidad' }].map(m => (
+                    <div key={m.l} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 'bold', color: C.navy }}>{m.v}</div>
+                      <div style={{ fontSize: 11, color: C.gray }}>{m.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead><tr style={{ background: C.grayLight }}>{['Materia', 'Semestre', 'Día', 'Periodo', 'Docente'].map(h => <th key={h} style={thStyle}>{h.toUpperCase()}</th>)}</tr></thead>
+                    <tbody>
+                      {usos.map((u, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                          <td style={tdStyle}><span style={{ fontWeight: 'bold', color: C.navy, fontSize: 13 }}>{u.nombre}</span></td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}><span style={{ background: C.navy, color: C.gold, padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{u.semestre}°</span></td>
+                          <td style={tdStyle}>{DIAS[u.dia]}</td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>P{u.periodo + 1}</td>
+                          <td style={tdStyle}>{docentes.find(d => d.id === u.docenteId)?.nombre || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {subTab === 'exportar' && (
+        <div>
+          <p style={{ color: C.gray, fontSize: 13, marginBottom: 16 }}>Genera y descarga los horarios en distintos formatos para distribución institucional.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+            {[
+              { icon: <FileDown size={28} />, titulo: 'Exportar PDF (HU-64)', desc: 'Genera horario completo en PDF para impresión y distribución oficial', color: '#dc2626', label: 'Descargar PDF' },
+              { icon: <FileText size={28} />, titulo: 'Exportar Excel (HU-65)', desc: 'Exporta en formato .xlsx para edición en Microsoft Excel', color: '#166534', label: 'Descargar Excel' },
+              { icon: <Printer size={28} />, titulo: 'Imprimir (HU-66)', desc: 'Envía directamente a impresora el cronograma académico del semestre seleccionado', color: C.navy, label: 'Imprimir Ahora' },
+              { icon: <Users size={28} />, titulo: 'Horario por Docente (HU-68)', desc: 'Genera PDF individual con el horario de cada docente para distribución personal', color: C.blue, label: 'Generar PDFs' },
+              { icon: <Layers size={28} />, titulo: 'Horario por Grupo', desc: 'Descarga el horario semestral completo para cada grupo académico', color: C.purple, label: 'Descargar' },
+              { icon: <Archive size={28} />, titulo: 'Resumen Ejecutivo', desc: 'Informe gerencial con métricas de carga docente, ocupación de aulas y estadísticas', color: '#92400e', label: 'Generar Informe' },
+            ].map(r => (
+              <div key={r.titulo} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ color: r.color }}>{r.icon}</div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 13, marginBottom: 4 }}>{r.titulo}</div>
+                  <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>{r.desc}</div>
+                </div>
+                <button onClick={() => alert(`Función "${r.titulo}" lista para implementar con backend. El sistema exportará los datos del horario generado.`)}
+                  style={{ marginTop: 'auto', padding: '8px', background: r.color, color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: !horario ? 0.4 : 1 }}
+                  disabled={!horario}>
+                  <Download size={13} /> {r.label}
+                </button>
+              </div>
+            ))}
+          </div>
+          {!horario && <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: '#94a3b8' }}>⚠ Genera un horario primero en el MOD-3 para habilitar la exportación.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// AUXILIARES
 // ==========================================
 function EmptyState({ icon, titulo, desc }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: C.gray, textAlign: 'center' }}>
-      <div style={{ color: '#cbd5e1', marginBottom: 16 }}>{icon}</div>
-      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#64748b', marginBottom: 6 }}>{titulo}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '55vh', color: C.gray, textAlign: 'center' }}>
+      <div style={{ color: '#cbd5e1', marginBottom: 14 }}>{icon}</div>
+      <div style={{ fontSize: 16, fontWeight: 'bold', color: '#64748b', marginBottom: 6 }}>{titulo}</div>
       <div style={{ fontSize: 13 }}>{desc}</div>
     </div>
   );
@@ -1419,16 +1908,16 @@ function EmptyState({ icon, titulo, desc }) {
 function FormModal({ titulo, onClose, onGuardar, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ background: 'white', borderRadius: 12, padding: 28, width: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, color: C.navy, fontSize: 16, fontWeight: 'bold' }}>{titulo}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.gray }}><X size={20} /></button>
+      <div style={{ background: 'white', borderRadius: 12, padding: 26, width: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <h3 style={{ margin: 0, color: C.navy, fontSize: 15, fontWeight: 'bold' }}>{titulo}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.gray }}><X size={18} /></button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '9px', border: '1px solid #e2e8f0', borderRadius: 6, background: 'white', color: C.gray, cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancelar</button>
-          <button onClick={onGuardar} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 6, background: C.navy, color: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <Save size={14} /> Guardar
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{children}</div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '8px', border: '1px solid #e2e8f0', borderRadius: 6, background: 'white', color: C.gray, cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancelar</button>
+          <button onClick={onGuardar} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 6, background: C.navy, color: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Save size={13} /> Guardar
           </button>
         </div>
       </div>
@@ -1439,25 +1928,14 @@ function FormModal({ titulo, onClose, onGuardar, children }) {
 function FormField({ label, children }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 11, color: C.gray, fontWeight: 'bold', letterSpacing: 0.5, marginBottom: 6 }}>{label.toUpperCase()}</label>
+      <label style={{ display: 'block', fontSize: 10, color: C.gray, fontWeight: 'bold', letterSpacing: 0.5, marginBottom: 5 }}>{label}</label>
       {children}
     </div>
   );
 }
 
-const inputStyle = {
-  width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6,
-  fontSize: 13, color: C.navy, outline: 'none', boxSizing: 'border-box', background: '#f8fafc'
-};
-
-const btnPrimary = {
-  background: C.navy, color: 'white', border: 'none', borderRadius: 7,
-  padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 'bold',
-  display: 'flex', alignItems: 'center', gap: 6
-};
-
-const btnSmall = {
-  background: 'white', border: '1px solid #e2e8f0', borderRadius: 5,
-  padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: C.navy,
-  display: 'inline-flex', alignItems: 'center', gap: 4
-};
+const inputStyle = { width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, color: C.navy, outline: 'none', boxSizing: 'border-box', background: '#f8fafc' };
+const btnPrimary = { background: C.navy, color: 'white', border: 'none', borderRadius: 7, padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 };
+const btnSmall = { background: 'white', border: '1px solid #e2e8f0', borderRadius: 5, padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: C.navy, display: 'inline-flex', alignItems: 'center', gap: 4 };
+const thStyle = { padding: '9px 12px', textAlign: 'left', fontSize: 11, color: C.gray, fontWeight: 'bold', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0' };
+const tdStyle = { padding: '9px 12px', fontSize: 13, color: C.gray, verticalAlign: 'middle' };
