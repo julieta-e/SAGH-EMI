@@ -374,7 +374,7 @@ export default function App() {
     { id: 'mod1', label: 'Administracion del Sistema', icon: <Shield size={16} />, mod: 'mod1' },
     { id: 'mod2', label: 'Gestión Académica', icon: <Database size={16} />, mod: 'mod2' },
     { id: 'mod3', label: 'Generación de Horarios', icon: <Play size={16} />, mod: 'mod3' },
-    { id: 'mod4', label: 'Gestión de Horarios', icon: <Calendar size={16} />, mod: 'mod4', badge: estadoHorario === 'pendiente' },
+    { id: 'mod4', label: 'Gestion Horarios', icon: <Calendar size={16} />, mod: 'mod4', badge: estadoHorario === 'pendiente' },
     { id: 'mod5', label: 'Validación', icon: <CheckCircle size={16} />, mod: 'mod5' },
     { id: 'mod6', label: 'Reportes', icon: <FileText size={16} />, mod: 'mod6' },
   ].filter(t => t.always || canAccess(t.mod));
@@ -1155,19 +1155,50 @@ function Mod3GeneradorView({ materias, docentes, aulas, onFinish }) {
   const [phase, setPhase] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
-  const [params, setParams] = useState({ poblacion: 50, generaciones: 50, mutacion: 0.05, cruce: 0.8 });
+  const [periodoAcademico, setPeriodoAcademico] = useState('2026-I');
+  const [carrera, setCarrera] = useState('Ingeniería de Sistemas');
+  const [restricciones, setRestricciones] = useState({
+    disponibilidad: true,
+    huecos: true,
+    criticas: true,
+    recesos: true,
+    distribucion: true,
+    bloques: true,
+  });
+
+  const BLOQUES = [
+    { tipo: 'clase', label: 'Periodo 1: 07:45 - 08:30', dur: '45 minutos' },
+    { tipo: 'clase', label: 'Periodo 2: 08:30 - 09:15', dur: '45 minutos' },
+    { tipo: 'clase', label: 'Periodo 3: 09:15 - 10:00', dur: '45 minutos' },
+    { tipo: 'receso', label: 'Receso: 10:00 - 10:15', dur: '15 minutos (automático cada 3 periodos)' },
+    { tipo: 'clase', label: 'Periodo 4: 10:15 - 11:00', dur: '45 minutos' },
+    { tipo: 'clase', label: 'Periodo 5: 11:00 - 11:45', dur: '45 minutos' },
+    { tipo: 'receso', label: 'Receso: 11:45 - 12:00', dur: '15 minutos (automático cada 3 periodos)' },
+    { tipo: 'clase', label: 'Periodo 6: 12:00 - 12:45', dur: '45 minutos' },
+    { tipo: 'clase', label: 'Periodo 7: 12:45 - 13:30', dur: '45 minutos' },
+    { tipo: 'clase', label: 'Periodo 8: 13:30 - 14:15', dur: '45 minutos' },
+  ];
+
+  const RESTRICCIONES_LABELS = [
+    { key: 'disponibilidad', label: 'Respetar disponibilidad de docentes' },
+    { key: 'huecos', label: 'Evitar huecos en horarios de docentes' },
+    { key: 'criticas', label: 'Priorizar materias críticas' },
+    { key: 'recesos', label: 'Recesos automáticos cada 3 periodos' },
+    { key: 'distribucion', label: 'Distribución equitativa de carga' },
+    { key: 'bloques', label: 'Bloques continuos de 2-3 periodos' },
+  ];
 
   const start = () => {
     setPhase('running'); setProgress(0); setLogs([]);
     const steps = [
-      [350, 8, `↳ Inicializando población (${params.poblacion} individuos)...`],
+      [350, 8,  '↳ Inicializando población (50 individuos)...'],
       [400, 18, '↳ Preclasificando materias críticas (HU-41)...'],
       [600, 32, '↳ Calculando fitness: conflictos docentes, aulas y grupos...'],
-      [600, 50, `↳ Selección por torneo. Cruce con probabilidad ${params.cruce}...`],
-      [600, 65, `↳ Mutación (tasa ${params.mutacion}). Evaluando generaciones...`],
+      [600, 50, '↳ Selección por torneo. Cruce con probabilidad 0.8...'],
+      [600, 65, '↳ Mutación (tasa 0.05). Evaluando generaciones...'],
       [500, 80, '↳ Verificando reglas duras: RAC-03, lunes 07:45, bloques 2-3...'],
       [500, 90, '↳ Verificando continuidad de bloques y recesos automáticos...'],
-      [400, 100, '✓ Solución óptima encontrada. Fitness: 0 conflictos.'],
+      [400, 100,'✓ Solución óptima encontrada. Fitness: 0 conflictos.'],
     ];
     let delay = 0;
     steps.forEach(([wait, prog, msg]) => {
@@ -1184,87 +1215,224 @@ function Mod3GeneradorView({ materias, docentes, aulas, onFinish }) {
   };
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto' }}>
-      <div style={{ background: 'white', borderRadius: 12, padding: 36, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-        <div style={{ width: 76, height: 76, borderRadius: '50%', background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: `0 8px 24px rgba(15,36,68,0.3)` }}>
-          <Settings color={C.gold} size={34} style={{ animation: phase === 'running' ? 'spin 2s linear infinite' : 'none' }} />
+    <div style={{ fontFamily: "'Georgia', serif" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 'bold', color: C.navy }}>
+          Generación de Horarios
+        </h1>
+        <p style={{ margin: 0, fontSize: 13, color: C.gray }}>Periodo Académico 2026-I</p>
+      </div>
+
+      {/* Banner azul */}
+      <div style={{
+        background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`,
+        borderRadius: 12, padding: '22px 28px', marginBottom: 24,
+        display: 'flex', alignItems: 'center', gap: 16
+      }}>
+        <div style={{ color: C.gold, fontSize: 28 }}>⚡</div>
+        <div>
+          <div style={{ color: 'white', fontWeight: 'bold', fontSize: 17 }}>
+            Módulo 3: Generación de Horarios
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 3 }}>
+            Algoritmo genético para generación automática óptima
+          </div>
         </div>
+      </div>
 
-        <h2 style={{ color: C.navy, margin: '0 0 6px', fontSize: 20 }}>Motor de Algoritmo Genético</h2>
-        <p style={{ color: C.gray, fontSize: 12, margin: '0 0 16px' }}>Genera horarios óptimos respetando todas las restricciones del RAC-03</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+        {/* COLUMNA IZQUIERDA */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 22 }}>
-          {['Sin cruces de docente/aula/grupo', 'RAC-03 cumplido', 'Lunes 07:45 obligatorio', 'Bloques 2-3 periodos continuos', 'Materias críticas priorizadas', 'Recesos automáticos'].map(r => (
-            <span key={r} style={{ background: C.grayLight, color: C.navy, fontSize: 11, padding: '3px 10px', borderRadius: 20, fontWeight: 'bold' }}>✓ {r}</span>
-          ))}
-        </div>
+          {/* Configuración del Periodo */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <Settings size={18} color={C.gray} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 'bold', color: C.navy }}>
+                Configuración del Periodo
+              </h3>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: C.gray, marginBottom: 8 }}>
+                  Periodo Académico
+                </label>
+                <select
+                  value={periodoAcademico}
+                  onChange={e => setPeriodoAcademico(e.target.value)}
+                  style={{ ...inputStyle, fontSize: 14 }}
+                >
+                  {['2026-I', '2026-II', '2025-I', '2025-II'].map(p => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: C.gray, marginBottom: 8 }}>
+                  Carrera
+                </label>
+                <select
+                  value={carrera}
+                  onChange={e => setCarrera(e.target.value)}
+                  style={{ ...inputStyle, fontSize: 14 }}
+                >
+                  {['Ingeniería de Sistemas', 'Ingeniería Civil', 'Ingeniería Electrónica'].map(c => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-        {/* Parámetros del AG */}
-        {phase === 'idle' && (
-          <div style={{ background: '#f8fafc', borderRadius: 10, padding: 16, marginBottom: 20, textAlign: 'left' }}>
-            <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 12, marginBottom: 12 }}>Parámetros del Algoritmo Genético</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {[
-                { label: 'Tamaño de Población', key: 'poblacion', min: 10, max: 200 },
-                { label: 'N° Generaciones', key: 'generaciones', min: 10, max: 500 },
-              ].map(p => (
-                <div key={p.key}>
-                  <label style={{ fontSize: 11, color: C.gray, display: 'block', marginBottom: 4 }}>{p.label}: <strong>{params[p.key]}</strong></label>
-                  <input type="range" min={p.min} max={p.max} value={params[p.key]} onChange={e => setParams(prev => ({ ...prev, [p.key]: +e.target.value }))} style={{ width: '100%' }} />
+          {/* Bloques Horarios */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <Clock size={18} color={C.gold} />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 'bold', color: C.navy }}>
+                Bloques Horarios
+              </h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {BLOQUES.map((b, i) => (
+                <div key={i} style={{
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: `1px solid ${b.tipo === 'receso' ? '#fef08a' : '#e2e8f0'}`,
+                  background: b.tipo === 'receso' ? '#fefce8' : 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: 13, fontWeight: '600',
+                      color: b.tipo === 'receso' ? '#92400e' : C.navy
+                    }}>
+                      {b.label}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{b.dur}</div>
+                  </div>
+                  {b.tipo === 'receso' ? (
+                    <Clock size={16} color={C.gold} />
+                  ) : (
+                    <span style={{
+                      background: '#dcfce7', color: '#16a34a',
+                      fontSize: 11, fontWeight: 'bold',
+                      padding: '3px 12px', borderRadius: 20
+                    }}>
+                      Activo
+                    </span>
+                  )}
                 </div>
               ))}
-              {[
-                { label: 'Tasa de Mutación', key: 'mutacion', min: 0.01, max: 0.5, step: 0.01 },
-                { label: 'Prob. de Cruce', key: 'cruce', min: 0.5, max: 1, step: 0.05 },
-              ].map(p => (
-                <div key={p.key}>
-                  <label style={{ fontSize: 11, color: C.gray, display: 'block', marginBottom: 4 }}>{p.label}: <strong>{params[p.key]}</strong></label>
-                  <input type="range" min={p.min} max={p.max} step={p.step} value={params[p.key]} onChange={e => setParams(prev => ({ ...prev, [p.key]: +parseFloat(e.target.value).toFixed(2) }))} style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          {/* Restricciones del Algoritmo */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24 }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 'bold', color: C.navy }}>
+              Restricciones del Algoritmo
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {RESTRICCIONES_LABELS.map(r => (
+                <div key={r.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, color: '#374151' }}>{r.label}</span>
+                  {/* Toggle switch */}
+                  <div
+                    onClick={() => setRestricciones(prev => ({ ...prev, [r.key]: !prev[r.key] }))}
+                    style={{
+                      width: 44, height: 24, borderRadius: 99,
+                      background: restricciones[r.key] ? '#22c55e' : '#cbd5e1',
+                      cursor: 'pointer', position: 'relative',
+                      transition: 'background 0.2s', flexShrink: 0
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute', top: 3,
+                      left: restricciones[r.key] ? 23 : 3,
+                      width: 18, height: 18, borderRadius: '50%',
+                      background: 'white', transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 22 }}>
-          {[{ v: materias.length, l: 'Materias' }, { v: docentes.length, l: 'Docentes' }, { v: aulas.filter(a => a.disponible).length, l: 'Aulas Disp.' }].map(s => (
-            <div key={s.l} style={{ background: C.grayLight, borderRadius: 8, padding: '10px 0' }}>
-              <div style={{ fontSize: 22, fontWeight: 'bold', color: C.navy }}>{s.v}</div>
-              <div style={{ fontSize: 11, color: C.gray }}>{s.l}</div>
-            </div>
-          ))}
         </div>
 
-        {phase === 'idle' && (
-          <button onClick={start} style={{ background: `linear-gradient(135deg, ${C.navy}, ${C.navyMid})`, color: C.gold, border: 'none', borderRadius: 8, padding: '13px 36px', fontSize: 14, fontWeight: 'bold', cursor: 'pointer', letterSpacing: 1, boxShadow: `0 4px 16px rgba(15,36,68,0.4)`, display: 'flex', alignItems: 'center', gap: 10, margin: '0 auto' }}>
-            <Play fill={C.gold} size={16} /> GENERAR HORARIO ÓPTIMO
-          </button>
-        )}
+        {/* COLUMNA DERECHA */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {phase === 'running' && (
-          <div>
-            <div style={{ background: '#e2e8f0', borderRadius: 99, height: 8, marginBottom: 10, overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: `linear-gradient(90deg, ${C.gold}, ${C.goldLight})`, width: `${progress}%`, transition: 'width 0.4s' }} />
+          {/* Generador */}
+          <div style={{
+            background: 'white', borderRadius: 12,
+            border: `2px solid ${C.gold}`, padding: 24
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <span style={{ color: C.gold, fontSize: 16 }}>⚡</span>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 'bold', color: C.navy }}>Generador</h3>
             </div>
-            <div style={{ fontSize: 12, color: C.gray, marginBottom: 8 }}>{progress}% completado</div>
-            <div style={{ background: '#0f172a', borderRadius: 8, padding: '12px 14px', textAlign: 'left', fontFamily: 'monospace', fontSize: 11, color: '#4ade80', minHeight: 120, maxHeight: 160, overflowY: 'auto' }}>
-              {logs.map((l, i) => <div key={i}>{l}</div>)}
-              <span style={{ animation: 'pulse 1s infinite' }}>█</span>
+
+            {phase === 'idle' && (
+              <button onClick={start} style={{
+                width: '100%', padding: '14px',
+                background: C.navy, color: 'white',
+                border: 'none', borderRadius: 10,
+                fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                letterSpacing: 0.5
+              }}>
+                <Play fill="white" size={17} /> Generar Horario
+              </button>
+            )}
+
+            {phase === 'running' && (
+              <div>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.gray, marginBottom: 6 }}>
+                    <span>Generando...</span><span>{progress}%</span>
+                  </div>
+                  <div style={{ background: '#e2e8f0', borderRadius: 99, height: 8, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', background: `linear-gradient(90deg, ${C.gold}, ${C.goldLight})`, width: `${progress}%`, transition: 'width 0.4s' }} />
+                  </div>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: 8, padding: '10px 12px', fontFamily: 'monospace', fontSize: 10, color: '#4ade80', minHeight: 100, maxHeight: 140, overflowY: 'auto' }}>
+                  {logs.map((l, i) => <div key={i}>{l}</div>)}
+                  <span style={{ animation: 'pulse 1s infinite' }}>█</span>
+                </div>
+              </div>
+            )}
+
+            {phase === 'done' && (
+              <div style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <CheckCircle size={18} /> ¡Completado! Redirigiendo...
+              </div>
+            )}
+          </div>
+
+          {/* Información */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24 }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 'bold', color: C.navy }}>
+              Información
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                `${docentes.length} Docentes activos`,
+                `${materias.length} Materias configuradas`,
+                `8 Grupos (3° a 10°)`,
+                `${aulas.filter(a => a.disponible).length} Aulas disponibles`,
+              ].map(item => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151' }}>
+                  <span style={{ color: C.navy, fontWeight: 'bold' }}>•</span> {item}
+                </div>
+              ))}
             </div>
           </div>
-        )}
-
-        {phase === 'done' && (
-          <div style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14 }}>
-            <CheckCircle size={20} /> Generación Completada — Redirigiendo a Horarios...
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
-
 // ==========================================
 // MOD-4: GESTIÓN DE HORARIOS
 // ==========================================
