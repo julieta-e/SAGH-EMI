@@ -4,6 +4,15 @@ import { C, DIAS, RENDER_SLOTS } from '../../../shared/constants';
 import { EmptyState } from '../../../shared/components/Forms';
 import { inputStyle, btnPrimary, thStyle, tdStyle } from '../../../shared/styles/inlineStyles';
 import '../styles/reports.css';
+import {
+  exportarHorarioGeneralPDF,
+  exportarHorarioDocentePDF,
+  exportarAulasPDF,
+  exportarCargaPDF,
+  exportarHorarioGeneralExcel,
+  exportarCargaExcel,
+  exportarAulasExcel,
+} from '../backend/reportService';
 
 export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, horasDoc, estadoHorario, addNotif, usuario }) {
   const [subTab, setSubTab] = useState('resumen');
@@ -23,28 +32,6 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
 
   const NotGenerated = () => <EmptyState icon={<FileText size={36} />} titulo="Sin horario generado" desc="Ve al MOD-3 para generar un horario primero." />;
 
-  const exportarPDF = (nombre, contenido) => {
-    const blob = new Blob([contenido], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nombre}_${periodoExport}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-    addNotif(`PDF exportado: ${nombre}`, 'success');
-  };
-
-  const exportarExcel = (nombre, contenido) => {
-    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nombre}_${periodoExport}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    addNotif(`Excel exportado: ${nombre}`, 'success');
-  };
-
   const imprimir = () => {
     window.print();
     addNotif('Impresión iniciada', 'info');
@@ -52,97 +39,6 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
 
   const notificarDDE = (msg) => {
     addNotif(`📧 Notificación enviada a DDE: ${msg}`, 'success', 'DDE');
-  };
-
-  const generarContenidoGeneral = () => {
-    let txt = `HORARIO GENERAL — PERÍODO ${periodoExport}\n`;
-    txt += `Escuela Militar de Ingeniería · Ing. de Sistemas\n`;
-    txt += `Estado: ${estadoHorario?.toUpperCase() || 'PENDIENTE'}\n`;
-    txt += '═'.repeat(60) + '\n\n';
-    if (!horario) return txt + 'Sin horario generado.\n';
-    semestres.forEach(sem => {
-      const grid = horario[sem] || [];
-      const clases = grid.flat().filter(c => c);
-      txt += `${sem}° SEMESTRE — ${[...new Set(clases.map(c => c.nombre))].length} materias\n`;
-      DIAS.forEach((dia, d) => {
-        const cd = (grid[d] || []).filter(c => c);
-        if (cd.length > 0) txt += `  ${dia}: ${[...new Set(cd.map(c => c.nombre))].join(', ')}\n`;
-      });
-      txt += '\n';
-    });
-    return txt;
-  };
-
-  const generarContenidoDocente = (docId) => {
-    const doc = docentes.find(d => d.id === (docId || filtroDoc));
-    if (!doc || !horario) return 'Sin datos';
-    let txt = `HORARIO DOCENTE — ${doc.nombre.toUpperCase()}\n`;
-    txt += `Período: ${periodoExport} · Especialidad: ${doc.especialidad} · Tipo: ${doc.tipo}\n`;
-    txt += `Horas asignadas: ${horasDoc?.[doc.id] || 0}/${doc.maxHoras}\n`;
-    txt += '═'.repeat(50) + '\n\n';
-    semestres.forEach(s => {
-      for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) {
-        const c = horario[s]?.[d]?.[p];
-        if (c?.docenteId === doc.id) {
-          const aulaObj = aulas.find(a => a.id === c.aulaId);
-          txt += `${DIAS[d]} P${p+1}: ${c.nombre} (${s}°) — ${aulaObj?.nombre || 'Sin aula'}\n`;
-        }
-      }
-    });
-    return txt;
-  };
-
-  const generarContenidoAulas = () => {
-    let txt = `OCUPACIÓN DE AULAS — PERÍODO ${periodoExport}\n`;
-    txt += `Escuela Militar de Ingeniería · Ing. de Sistemas\n`;
-    txt += '═'.repeat(60) + '\n\n';
-    if (!horario) return txt + 'Sin horario generado.\n';
-    aulas.filter(a => a.disponible).forEach(aula => {
-      const usos = [];
-      semestres.forEach(s => {
-        for (let d = 0; d < 5; d++) for (let p = 0; p < 8; p++) {
-          const c = horario[s]?.[d]?.[p];
-          if (c?.aulaId === aula.id) usos.push({ ...c, semestre: s, dia: d, periodo: p });
-        }
-      });
-      const tasa = Math.round((usos.length / 40) * 100);
-      txt += `${aula.nombre} — ${aula.tipo} — Edificio ${aula.edificio} — Cap. ${aula.capacidad}\n`;
-      txt += `Ocupación: ${usos.length}/40 periodos (${tasa}%)\n`;
-      usos.forEach(u => { txt += `  ${DIAS[u.dia]} P${u.periodo+1}: ${u.nombre} (${u.semestre}°)\n`; });
-      txt += '\n';
-    });
-    return txt;
-  };
-
-  const generarContenidoCarga = () => {
-    let txt = `CARGA HORARIA — PERÍODO ${periodoExport}\n`;
-    txt += '═'.repeat(60) + '\n\n';
-    docentes.forEach(doc => {
-      const horas = horasDoc?.[doc.id] || 0;
-      const estado = horas < doc.minHoras ? 'BAJO' : horas > doc.maxHoras ? 'EXCEDE' : 'OK';
-      txt += `${doc.nombre} (${doc.tipo})\n`;
-      txt += `  Horas: ${horas}/${doc.maxHoras} | Mín: ${doc.minHoras} | Estado: ${estado}\n\n`;
-    });
-    return txt;
-  };
-
-  const generarCSV = () => {
-    if (!horario) return '';
-    let csv = 'Semestre,Día,Periodo,Hora,Materia,Docente,Aula,Tipo Aula\n';
-    semestres.forEach(s => {
-      RENDER_SLOTS.filter(sl => sl.type === 'class').forEach(slot => {
-        const p = slot.idx;
-        DIAS.forEach((dia, d) => {
-          const c = horario[s]?.[d]?.[p];
-          if (c) {
-            const doc = docentes.find(x => x.id === c.docenteId);
-            const aula = aulas.find(x => x.id === c.aulaId);
-            csv += `${s}°,${dia},P${p+1},${slot.inicio}-${slot.fin},"${c.nombre}","${doc?.nombre || ''}","${aula?.nombre || ''}","${c.tipoAula}"\n`;
-          }
-        });
-      });
-    });
-    return csv;
   };
 
   const agregarObs = () => {
@@ -246,7 +142,14 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
               <select value={filtroDoc} onChange={e => setFiltroDoc(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }}>
                 {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
               </select>
-              <button onClick={() => { exportarPDF('Horario_Docente_' + docentes.find(d => d.id === filtroDoc)?.nombre.replace(/ /g,'_'), generarContenidoDocente(filtroDoc)); }} disabled={!horario} style={{ ...btnPrimary, background: !horario ? '#e2e8f0' : '#dc2626', cursor: !horario ? 'not-allowed' : 'pointer' }}>
+              <button
+                onClick={() => {
+                  exportarHorarioDocentePDF({ horario, docentes, aulas, docenteId: filtroDoc, periodo: periodoExport, estadoHorario });
+                  addNotif('PDF exportado: Horario Docente', 'success');
+                }}
+                disabled={!horario}
+                style={{ ...btnPrimary, background: !horario ? '#e2e8f0' : '#dc2626', cursor: !horario ? 'not-allowed' : 'pointer' }}
+              >
                 <FileText size={13} /> Exportar PDF Docente
               </button>
             </div>
@@ -348,7 +251,6 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
         </div>
       )}
 
-
       {subTab === 'exportar' && (
         <div>
           <div style={{ background: 'white', borderRadius: 12, border: `2px solid ${C.gold}`, padding: 20, marginBottom: 16 }}>
@@ -372,10 +274,31 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            {[{ titulo: 'Horario General', desc: 'Todos los semestres (3° al 10°)', generarPDF: generarContenidoGeneral, generarExcel: generarCSV },
-              { titulo: 'Horario por Docente', desc: 'Clases asignadas a cada docente', generarPDF: generarContenidoDocente, generarExcel: generarContenidoDocente },
-              { titulo: 'Ocupación de Aulas', desc: 'Uso y disponibilidad de aulas', generarPDF: generarContenidoAulas, generarExcel: generarContenidoAulas },
-              { titulo: 'Carga Horaria', desc: 'Distribución de horas por docente', generarPDF: generarContenidoCarga, generarExcel: generarContenidoCarga },
+            {[
+              {
+                titulo: 'Horario General',
+                desc: 'Todos los semestres (3° al 10°)',
+                onPDF: () => { exportarHorarioGeneralPDF({ horario, docentes, aulas, periodo: periodoExport, estadoHorario }); addNotif('PDF exportado: Horario General', 'success'); },
+                onExcel: () => { exportarHorarioGeneralExcel({ horario, docentes, aulas, periodo: periodoExport }); addNotif('Excel exportado: Horario General', 'success'); },
+              },
+              {
+                titulo: 'Horario por Docente',
+                desc: 'Clases asignadas a cada docente',
+                onPDF: () => { exportarHorarioDocentePDF({ horario, docentes, aulas, docenteId: filtroDoc, periodo: periodoExport, estadoHorario }); addNotif('PDF exportado: Horario Docente', 'success'); },
+                onExcel: () => { exportarHorarioGeneralExcel({ horario, docentes: docentes.filter(d => d.id === filtroDoc), aulas, periodo: periodoExport }); addNotif('Excel exportado: Horario Docente', 'success'); },
+              },
+              {
+                titulo: 'Ocupación de Aulas',
+                desc: 'Uso y disponibilidad de aulas',
+                onPDF: () => { exportarAulasPDF({ horario, aulas, periodo: periodoExport, estadoHorario }); addNotif('PDF exportado: Aulas', 'success'); },
+                onExcel: () => { exportarAulasExcel({ horario, aulas, periodo: periodoExport }); addNotif('Excel exportado: Aulas', 'success'); },
+              },
+              {
+                titulo: 'Carga Horaria',
+                desc: 'Distribución de horas por docente',
+                onPDF: () => { exportarCargaPDF({ docentes, horasDoc, periodo: periodoExport, estadoHorario }); addNotif('PDF exportado: Carga Horaria', 'success'); },
+                onExcel: () => { exportarCargaExcel({ docentes, horasDoc, periodo: periodoExport }); addNotif('Excel exportado: Carga Horaria', 'success'); },
+              },
             ].map(rep => (
               <div key={rep.titulo} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 }}>
                 <div style={{ fontWeight: 'bold', color: C.navy, fontSize: 14, marginBottom: 6 }}>{rep.titulo}</div>
@@ -384,10 +307,10 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
                   Periodo: <strong>{periodoExport}</strong>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button disabled={!horario} onClick={() => exportarPDF(rep.titulo.replace(/ /g,'_'), rep.generarPDF())} style={{ flex: 1, padding: '10px 6px', borderRadius: 8, border: 'none', background: !horario ? '#f1f5f9' : '#dc2626', color: !horario ? '#94a3b8' : 'white', cursor: !horario ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <button disabled={!horario} onClick={rep.onPDF} style={{ flex: 1, padding: '10px 6px', borderRadius: 8, border: 'none', background: !horario ? '#f1f5f9' : '#dc2626', color: !horario ? '#94a3b8' : 'white', cursor: !horario ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     <FileText size={13} /> PDF
                   </button>
-                  <button disabled={!horario} onClick={() => exportarExcel(rep.titulo.replace(/ /g,'_'), rep.generarExcel())} style={{ flex: 1, padding: '10px 6px', borderRadius: 8, border: 'none', background: !horario ? '#f1f5f9' : '#166534', color: !horario ? '#94a3b8' : 'white', cursor: !horario ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <button disabled={!horario} onClick={rep.onExcel} style={{ flex: 1, padding: '10px 6px', borderRadius: 8, border: 'none', background: !horario ? '#f1f5f9' : '#166534', color: !horario ? '#94a3b8' : 'white', cursor: !horario ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     <Download size={13} /> Excel
                   </button>
                   <button onClick={imprimir} style={{ padding: '10px 10px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: C.gray, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
@@ -466,4 +389,3 @@ export function Mod6ReportesView({ horario, materias, docentes, aulas, grupos, h
     </div>
   );
 }
-
