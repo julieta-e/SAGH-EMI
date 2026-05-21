@@ -1,4 +1,39 @@
-/* MOD-4 Gestion de Horarios: consulta y edicion manual del horario generado. */
+/* MOD-4 Gestión de Horarios: Consulta institucional y edición manual */
 .schedule-management-module {
   color: var(--sagh-navy);
+}
+
+.schedule-management-module table {
+  background-color: #ffffff;
+}
+
+/* REQ-47: Directivas de optimización para impresión física y PDF corporativos */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .schedule-management-module,
+  .print-container, 
+  .print-container * {
+    visibility: visible;
+  }
+  
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    border: 1px solid #0f172a !important;
+  }
+  
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  table {
+    page-break-inside: avoid;
+    width: 100% !important;
+  }
 }
