@@ -1,27 +1,237 @@
-/* MOD-5 Validation Module Styles CSS */
-.validation-container {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* ==========================================================================
+   SAGH - MÓDULO 5: VALIDACIÓN Y AUDITORÍA (ESTILOS UNIFICADOS)
+   ========================================================================= */
+
+:root {
+  --sagh-navy: #1e293b;
+  --sagh-gold: #d97706;
+  --sagh-success: #16a34a;
+  --sagh-danger: #dc2626;
+  --sagh-bg-panel: #f8fafc;
+  --border-subtle: #e2e8f0;
 }
 
-select:focus, input:focus {
-  outline: none;
-  border-color: #001f3f !important; /* C.navy Focus color */
-  box-shadow: 0 0 0 2px rgba(0, 31, 63, 0.15);
+.sagh-validation-container {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #334155;
 }
 
-/* Custom Slim Scrollbar para los Logs y Alertas de Auditoría por Semestre */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Selector de roles */
+.institutional-role-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f1f5f9;
+  border-left: 4px solid var(--sagh-navy);
+  padding: 10px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
 }
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
+.selector-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--sagh-navy); }
+.selector-actions { display: flex; gap: 6px; }
+.switch-role-btn {
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
   border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+.switch-role-btn:hover { background-color: #f8fafc; }
+.switch-role-btn.active {
+  background-color: var(--sagh-navy);
+  color: white;
+  border-color: var(--sagh-navy);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+
+/* Banner de flujo */
+.institutional-workflow-banner {
+  border-radius: 12px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
+.institutional-workflow-banner.state-borrador { background: linear-gradient(135deg, #1e293b, #334155); }
+.institutional-workflow-banner.state-en_revision { background: linear-gradient(135deg, #b45309, #d97706); }
+.institutional-workflow-banner.state-aprobado { background: linear-gradient(135deg, #14532d, #166534); }
+.banner-left-side { display: flex; align-items: center; gap: 14px; }
+.banner-title { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
+.banner-subtitle { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+.banner-right-side { display: flex; align-items: center; gap: 8px; }
+.workflow-trigger-btn {
+  border: none;
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+.workflow-trigger-btn:hover { opacity: 0.9; }
+.workflow-trigger-btn:disabled { background-color: #94a3b8; color: #cbd5e1; cursor: not-allowed; }
+.btn-gold { background-color: var(--sagh-gold); color: white; }
+.btn-success { background-color: var(--sagh-success); color: white; }
+.btn-danger { background-color: var(--sagh-danger); color: white; }
+.immutable-badge {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* Pestañas principales */
+.institutional-tabs-navbar {
+  display: flex;
+  background-color: #e2e8f0;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+.tab-item-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.tab-item-link:hover { background-color: rgba(255, 255, 255, 0.4); color: var(--sagh-navy); }
+.tab-item-link.active { background-color: white; color: var(--sagh-navy); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+/* Tarjetas y paneles */
+.submodule-viewport-card {
+  background-color: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.pending-state-lockout { text-align: center; padding: 40px 20px; max-width: 500px; margin: 0 auto; }
+.lockout-icon { color: #94a3b8; margin-bottom: 16px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+.metrics-dashboard-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.metric-box-item {
+  background-color: var(--sagh-bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+.metric-num { font-size: 24px; font-weight: 700; line-height: 1; }
+.metric-lbl { font-size: 11px; color: #64748b; font-weight: 500; margin-top: 6px; }
+.color-navy { color: var(--sagh-navy); }
+.bg-danger-subtle { background-color: #fef2f2; border-color: #fecaca; }
+.bg-danger-subtle .metric-num { color: var(--sagh-danger); }
+.bg-success-subtle { background-color: #f0fdf4; border-color: #bbf7d0; }
+.bg-success-subtle .metric-num { color: var(--sagh-success); }
+.bg-warning-subtle { background-color: #fffbeb; border-color: #fef3c7; }
+.bg-warning-subtle .metric-num { color: var(--sagh-gold); }
+
+.audit-section-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.audit-section-header {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Log interno */
+.internal-engine-logs { background-color: #1e293b; color: #94a3b8; border: none; }
+.internal-engine-logs .audit-section-header { color: #f1f5f9; }
+.engine-log-scroll { max-height: 120px; overflow-y: auto; font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 4px; }
+.engine-log-line { display: flex; gap: 8px; padding: 2px 0; border-bottom: 1px solid #334155; }
+.log-stamp { color: #64748b; }
+.log-action { color: #f59e0b; font-weight: bold; }
+.log-detail { color: #e2e8f0; flex: 1; }
+.log-user { color: #38bdf8; }
+
+/* Carga docente */
+.teachers-progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+.teacher-progress-card { background-color: white; border: 1px solid var(--border-subtle); padding: 12px; border-radius: 6px; }
+.teacher-progress-card.overloaded { background-color: #fff5f5; border-color: #fee2e2; }
+.teacher-progress-meta { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+.t-hours { font-weight: 700; }
+.text-success { color: var(--sagh-success); }
+.text-danger { color: var(--sagh-danger); }
+.progressbar-track { background-color: #e2e8f0; border-radius: 4px; height: 6px; overflow: hidden; }
+.progressbar-thumb { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+.thumb-success { background-color: var(--sagh-success); }
+.thumb-warning { background-color: #eab308; }
+.thumb-danger { background-color: var(--sagh-danger); }
+
+/* Observaciones */
+.observations-workspace-grid { display: flex; flex-direction: column; gap: 20px; }
+.input-inline-flex-row { display: flex; gap: 8px; }
+.add-obs-submit-btn { border: none; padding: 0 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; background-color: var(--sagh-navy); color: white; }
+.observations-split-display { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.obs-bucket { display: flex; flex-direction: column; gap: 10px; }
+.bucket-title { font-size: 12px; font-weight: 700; color: var(--sagh-navy); margin: 0 0 4px; }
+.institutional-comment-pill { border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.4; }
+.institutional-comment-pill.internally { background-color: #fffde7; border: 1px solid #fef08a; color: #713f12; }
+.institutional-comment-pill.teacher-sent { background-color: var(--sagh-bg-panel); border: 1px solid var(--border-subtle); color: #334155; }
+.comment-meta-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
+.text-gold { color: var(--sagh-gold); }
+
+/* Trazabilidad */
+.timeline-stack-container { display: flex; flex-direction: column; gap: 8px; }
+.timeline-event-row { display: flex; align-items: center; background-color: var(--sagh-bg-panel); border: 1px solid #f1f5f9; padding: 10px 14px; border-radius: 6px; font-size: 12px; }
+.event-date { font-weight: 700; color: var(--sagh-gold); min-width: 140px; }
+.event-action { font-weight: 600; color: var(--sagh-navy); min-width: 200px; }
+.event-user { color: #64748b; margin-right: 12px; }
+.event-badge-pill { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+.event-badge-pill.state-borrador { background-color: #e2e8f0; color: #475569; }
+.event-badge-pill.state-en_revision { background-color: #fef3c7; color: #b45309; }
+.event-badge-pill.state-aprobado { background-color: #dcfce7; color: #15803d; }
+
+/* Notificaciones */
+.notifications-stack { display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
+.notification-strip { display: flex; border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; background-color: var(--sagh-bg-panel); }
+.strip-decor-line { width: 4px; background-color: var(--sagh-navy); }
+.strip-content-body { padding: 12px; flex: 1; font-size: 12px; }
+.strip-meta-top { display: flex; justify-content: space-between; color: var(--sagh-navy); margin-bottom: 4px; }
+.time-lbl { font-size: 10px; color: #94a3b8; }
+.strip-footer-tag { margin-top: 8px; font-size: 10px; font-weight: 700; color: var(--sagh-gold); }
+
+/* Animaciones */
+.fade-in { animation: fadeInEffect 0.2s ease-out forwards; }
+@keyframes fadeInEffect {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
