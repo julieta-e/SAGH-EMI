@@ -1,4 +1,253 @@
-/* MOD-4 Gestion de Horarios: consulta y edicion manual del horario generado. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOD-4 · SAGH · Gestión de Horarios — Escuela Militar de Ingeniería
+   Hoja de estilos: variables de tema, animaciones, impresión y utilidades.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables de tema institucional ─────────────────────────────────────── */
+:root {
+  --sagh-navy:        #0f2444;
+  --sagh-gold:        #c8a84b;
+  --sagh-gold-light:  #fef3c7;
+  --sagh-gold-alpha:  rgba(200, 168, 75, 0.12);
+  --sagh-conflict:    #fef2f2;
+  --sagh-selected:    rgba(200, 168, 75, 0.12);
+  --sagh-radius-xl:   1.5rem;
+  --sagh-radius-2xl:  2rem;
+  --sagh-shadow-card: 0 10px 40px -8px rgba(15, 36, 68, 0.12);
+}
+
+/* ── Base del módulo ─────────────────────────────────────────────────────── */
 .schedule-management-module {
   color: var(--sagh-navy);
+}
+
+.schedule-management-module table {
+  background-color: #ffffff;
+}
+
+/* ── Utilidades de scrollbar ─────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Animaciones ─────────────────────────────────────────────────────────── */
+
+/* Pulso dorado para celda seleccionada para intercambio */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0   rgba(200, 168, 75, 0.45); }
+  70%  { box-shadow: 0 0 0 10px rgba(200, 168, 75, 0);   }
+  100% { box-shadow: 0 0 0 0   rgba(200, 168, 75, 0);    }
+}
+
+/* Destello rojo para celdas con conflicto activo */
+@keyframes conflict-flash {
+  0%, 100% { background-color: #fef2f2; }
+  50%       { background-color: #fee2e2; }
+}
+
+/* Selección de celda: rebote suave de escala */
+@keyframes cell-select {
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1.03); }
+}
+
+/* Entrada de vistas: slide hacia arriba con fade */
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* Entrada suave de modales */
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+/* Pulso lento para iconos de alerta */
+@keyframes slow-pulse {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.6; }
+}
+
+/* ── Clases de estado de celda ───────────────────────────────────────────── */
+
+/* Celda seleccionada para swap */
+.cell-selected {
+  animation: pulse-ring 1.5s infinite, cell-select 0.2s ease forwards;
+}
+
+/* Celda con conflicto */
+.cell-conflict {
+  animation: conflict-flash 2s ease-in-out infinite;
+}
+
+/* Celda destino de drop / swap */
+.cell-drop-target {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(200, 168, 75, 0.04),
+    rgba(200, 168, 75, 0.04) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  outline: 2px dashed var(--sagh-gold);
+}
+
+/* ── Modo edición activo ─────────────────────────────────────────────────── */
+.edit-mode-active .schedule-table td {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.edit-mode-active .schedule-table td:hover {
+  background-color: var(--sagh-gold-alpha);
+}
+
+/* ── Barra de progreso (ocupación de aulas) ──────────────────────────────── */
+.occupancy-bar {
+  height: 6px;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Transiciones de vistas ──────────────────────────────────────────────── */
+.view-transition {
+  animation: slide-up-fade 0.4s ease-out forwards;
+}
+
+.modal-enter {
+  animation: modal-in 0.25s ease-out forwards;
+}
+
+/* ── Tabs de navegación ──────────────────────────────────────────────────── */
+.tab-active {
+  background-color: var(--sagh-navy);
+  color: var(--sagh-gold);
+  box-shadow: 0 4px 12px rgba(15, 36, 68, 0.25);
+}
+
+.tab-inactive {
+  color: #64748b;
+}
+.tab-inactive:hover {
+  color: var(--sagh-navy);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Badges de tipo de período ───────────────────────────────────────────── */
+.badge-teorico    { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.badge-practico   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.badge-lab        { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+
+/* ── Cards de estadísticas ───────────────────────────────────────────────── */
+.stat-card {
+  background: white;
+  border-radius: var(--sagh-radius-2xl);
+  border: 1px solid #f1f5f9;
+  box-shadow: var(--sagh-shadow-card);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 50px -10px rgba(15, 36, 68, 0.18);
+}
+
+/* ── Encabezado institucional (para impresión) ───────────────────────────── */
+.emi-header {
+  border-bottom: 2px solid #e2e8f0;
+  padding: 1.5rem 2rem 0.75rem;
+}
+.emi-header-title {
+  font-family: serif;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sagh-navy);
+}
+
+/* ── Panel de conflictos ─────────────────────────────────────────────────── */
+.conflict-panel {
+  border: 2px solid #fecaca;
+  background: #fff5f5;
+  border-radius: var(--sagh-radius-xl);
+}
+.conflict-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: slow-pulse 2s ease-in-out infinite;
+}
+
+/* ── Icono de alerta animado ─────────────────────────────────────────────── */
+.alert-icon-pulse {
+  animation: slow-pulse 1.8s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REQ-47: Directivas de optimización para impresión física y PDF corporativos
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  body * { visibility: hidden; }
+
+  .schedule-management-module,
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+
+  .print-container {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    border: 1px solid var(--sagh-navy) !important;
+  }
+
+  /* Ocultar toda la UI interactiva */
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Ocultar banners de modo edición y conflictos en impresión */
+  [class*="edit-banner"],
+  [class*="animate-pulse"],
+  [class*="EditBanner"],
+  [class*="ConflictPanel"],
+  [class*="conflict-panel"] {
+    display: none !important;
+  }
+
+  /* Evitar cortes de tabla entre páginas */
+  table {
+    page-break-inside: avoid;
+    width: 100% !important;
+  }
+
+  /* Fondo blanco limpio y preservación de colores */
+  .bg-white,
+  [class*="rounded"] {
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Forzar colores en celdas de materias */
+  td[style*="background"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Resetear sombras para PDF limpio */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
 }

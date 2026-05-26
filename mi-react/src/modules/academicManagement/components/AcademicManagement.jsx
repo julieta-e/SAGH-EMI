@@ -181,7 +181,7 @@ function MateriasView({ materias, setMaterias, docentes }) {
               {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
             </select>
           </FormField>
-          <FormField label="Materia Crítica (HU-41)">
+          <FormField label="Materia Crítica">
             <select value={modal.critica ? 'si' : 'no'} onChange={e => setModal(m => ({ ...m, critica: e.target.value === 'si' }))} style={inputStyle}>
               <option value="si">Sí — prioridad alta en el AG</option>
               <option value="no">No</option>
@@ -273,6 +273,7 @@ function AulasView({ aulas, setAulas }) {
 
 function GruposView({ grupos, setGrupos, aulas }) {
   const [modal, setModal] = useState(null);
+  const [errorAula, setErrorAula] = useState('');
 
   return (
     <div>
@@ -303,11 +304,19 @@ function GruposView({ grupos, setGrupos, aulas }) {
         })}
       </div>
       {modal && (
-        <FormModal titulo={modal.id ? 'Editar Grupo' : 'Nuevo Grupo'} onClose={() => setModal(null)} onGuardar={() => {
-          if (modal.id) setGrupos(prev => prev.map(g => g.id === modal.id ? modal : g));
-          else setGrupos(prev => [...prev, { ...modal, id: `g${Date.now()}` }]);
-          setModal(null);
-        }}>
+        <FormModal titulo={modal.id ? 'Editar Grupo' : 'Nuevo Grupo'} onClose={() => { setModal(null); setErrorAula(''); }} onGuardar={() => {
+            if (modal.aulaFijaId) {
+              const aulaSeleccionada = aulas.find(a => a.id === modal.aulaFijaId);
+              if (aulaSeleccionada && modal.numEstudiantes > aulaSeleccionada.capacidad) {
+                setErrorAula(`El aula "${aulaSeleccionada.nombre}" tiene capacidad para ${aulaSeleccionada.capacidad} estudiantes, pero el grupo tiene ${modal.numEstudiantes}. Seleccioná un aula con mayor capacidad o reducí el número de estudiantes.`);
+                return;
+              }
+            }
+            setErrorAula('');
+            if (modal.id) setGrupos(prev => prev.map(g => g.id === modal.id ? modal : g));
+            else setGrupos(prev => [...prev, { ...modal, id: `g${Date.now()}` }]);
+            setModal(null);
+          }}>
           <FormField label="Nombre del Grupo"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <FormField label="Semestre">
@@ -315,14 +324,20 @@ function GruposView({ grupos, setGrupos, aulas }) {
                 {[3,4,5,6,7,8,9,10].map(s => <option key={s} value={s}>{s}°</option>)}
               </select>
             </FormField>
-            <FormField label="N° Estudiantes"><input type="number" min={1} value={modal.numEstudiantes} onChange={e => setModal(m => ({ ...m, numEstudiantes: +e.target.value }))} style={inputStyle} /></FormField>
+            <FormField label="N° Estudiantes"><input type="number" min={1} value={modal.numEstudiantes} onChange={e => { setErrorAula(''); setModal(m => ({ ...m, numEstudiantes: +e.target.value })); }} style={inputStyle} /></FormField>
           </div>
-          <FormField label="Aula Fija (HU-27)">
-            <select value={modal.aulaFijaId || ''} onChange={e => setModal(m => ({ ...m, aulaFijaId: e.target.value || null }))} style={inputStyle}>
+          <FormField label="Aula Fija">
+            <select value={modal.aulaFijaId || ''} onChange={e => { setErrorAula(''); setModal(m => ({ ...m, aulaFijaId: e.target.value || null })); }} style={inputStyle}>
               <option value="">Sin aula fija</option>
               {aulas.filter(a => a.disponible).map(a => <option key={a.id} value={a.id}>{a.nombre} — Cap. {a.capacidad}</option>)}
             </select>
           </FormField>
+          {errorAula && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#991b1b', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <span style={{ flexShrink: 0, fontWeight: 'bold' }}>⚠</span>
+              <span>{errorAula}</span>
+            </div>
+          )}
         </FormModal>
       )}
     </div>
