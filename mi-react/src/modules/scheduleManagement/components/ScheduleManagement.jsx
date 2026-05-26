@@ -1195,7 +1195,7 @@ export function Mod4HorariosView({
               <CheckCircle size={12} /> Horario Aprobado
             </span>
           )}
-          <button onClick={ejecutarImpresion} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: C.navy, cursor: 'pointer', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5 }}>
+          {/**7 */}<button onClick={ejecutarImpresion} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: C.navy, cursor: 'pointer', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5 }}>
             <Printer size={13} /> Imprimir
           </button>
           {puedeEditar && vistaActiva !== 'buscar' && (
