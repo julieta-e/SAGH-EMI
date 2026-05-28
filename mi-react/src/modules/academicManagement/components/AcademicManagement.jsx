@@ -36,11 +36,35 @@ function DocentesView({ docentes, setDocentes }) {
   const [modal, setModal] = useState(null);
   const [busqueda, setBusqueda] = useState('');
 
-  const guardar = (datos) => {
-    if (datos.id) setDocentes(prev => prev.map(d => d.id === datos.id ? datos : d));
-    else setDocentes(prev => [...prev, { ...datos, id: `d${Date.now()}` }]);
-    setModal(null);
-  };
+  const API = 'http://localhost:3001/api';
+
+const guardar = async (datos) => {
+  const method = datos.id ? 'PUT' : 'POST';
+  const url = datos.id ? `${API}/docentes/${datos.id}` : `${API}/docentes`;
+  await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nombre: datos.nombre,
+      tipo: datos.tipo,
+      especialidad: datos.especialidad,
+      email: datos.email,
+      max_horas: datos.maxHoras,
+      min_horas: datos.minHoras,
+      disponibilidad: datos.disponibilidad
+    })
+  });
+  const res = await fetch(`${API}/docentes`);
+  setDocentes(await res.json());
+  setModal(null);
+};
+
+// Para eliminar:
+const eliminar = async (id) => {
+  await fetch(`${API}/docentes/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${API}/docentes`);
+  setDocentes(await res.json());
+};
 
   const filtrados = docentes.filter(d => d.nombre.toLowerCase().includes(busqueda.toLowerCase()) || d.especialidad.toLowerCase().includes(busqueda.toLowerCase()));
 

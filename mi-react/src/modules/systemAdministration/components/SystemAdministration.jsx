@@ -12,35 +12,57 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
   const [modal, setModal] = useState(null);
   const [busqueda, setBusqueda] = useState('');
 
-  const guardarUsuario = (datos) => {
-    if (datos.id) setUsuarios(prev => updateUser(prev, datos.id, datos));
-    else {
-      const userData = { ...datos, ...generateUserCredentials(datos), mustChangePassword: true };
-      setUsuarios(prev => registerUser(prev, userData));
-    }
+  const guardarUsuario = async (datos) => {
+    const method = datos.id ? 'PUT' : 'POST';
+    const url = datos.id
+      ? `http://localhost:3001/api/usuarios/${datos.id}`
+      : 'http://localhost:3001/api/usuarios';
+
+    await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+
+    const res = await fetch('http://localhost:3001/api/usuarios');
+    setUsuarios(await res.json());
     addNotif(datos.id ? 'Usuario actualizado' : 'Usuario creado', 'success');
     setModal(null);
   };
 
-  const eliminarUsuario = (id) => {
-    setUsuarios(prev => deleteUser(prev, id));
+  const eliminarUsuario = async (id) => {
+    await fetch(`http://localhost:3001/api/usuarios/${id}`, { method: 'DELETE' });
+    const res = await fetch('http://localhost:3001/api/usuarios');
+    setUsuarios(await res.json());
     addNotif('Usuario eliminado', 'info');
     setModal(null);
   };
 
-  const toggleActivo = (id) => {
-    setUsuarios(prev => toggleUserStatus(prev, id));
+  const toggleActivo = async (id) => {
+    const user = usuarios.find(u => u.id === id);
+    await fetch(`http://localhost:3001/api/usuarios/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...user, activo: !user.activo })
+    });
+    const res = await fetch('http://localhost:3001/api/usuarios');
+    setUsuarios(await res.json());
   };
 
   const filtrados = usuarios.filter(u =>
-    u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    u.usuario.toLowerCase().includes(busqueda.toLowerCase())
+    (`${u.nombres} ${u.apellidos}`).toLowerCase().includes(busqueda.toLowerCase()) ||
+    (u.usuario || '').toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {[['dashboard', 'Dashboard', <Shield size={14}/>], ['usuarios', 'Usuarios', <Users size={14}/>], ['roles', 'Roles y Permisos', <Shield size={14}/>], ['configuracion', 'Configuraci?n', <Settings size={14}/>]].map(([id, label, icon]) => (
+        {[
+          ['dashboard',     'Dashboard',        <Shield size={14}/>],
+          ['usuarios',      'Usuarios',          <Users size={14}/>],
+          ['roles',         'Roles y Permisos',  <Shield size={14}/>],
+          ['configuracion', 'Configuración',     <Settings size={14}/>]
+        ].map(([id, label, icon]) => (
           <button key={id} onClick={() => setSubTab(id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 'bold', background: subTab === id ? C.navy : '#e2e8f0', color: subTab === id ? C.gold : C.gray }}>
             {icon} {label}
           </button>
@@ -65,9 +87,17 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
             <div style={{ position: 'relative', flex: 1, maxWidth: 260 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: 9, color: C.gray }} />
-              <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar usuario..." style={{ ...inputStyle, paddingLeft: 30 }} />
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar usuario..."
+                style={{ ...inputStyle, paddingLeft: 30 }}
+              />
             </div>
-            <button onClick={() => setModal({ nombre: '', usuario: '', password: '', rol: 'DDE', email: '', activo: true, docenteId: null })} style={btnPrimary}>
+            <button
+              onClick={() => setModal({ nombres: '', apellidos: '', usuario: '', password: '', rol: 'DDE', email: '', activo: true, docenteId: null })}
+              style={btnPrimary}
+            >
               <Plus size={14} /> Nuevo Usuario
             </button>
           </div>
@@ -84,12 +114,19 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
               <tbody>
                 {filtrados.map((u, i) => (
                   <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                    <td style={tdStyle}><span style={{ fontWeight: 'bold', color: C.navy }}>{u.nombre}</span></td>
-                    <td style={tdStyle}><code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>{u.usuario}</code></td>
+                    <td style={tdStyle}>
+                      <span style={{ fontWeight: 'bold', color: C.navy }}>{u.nombres} {u.apellidos}</span>
+                    </td>
+                    <td style={tdStyle}>
+                      <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>{u.usuario}</code>
+                    </td>
                     <td style={tdStyle}><RolBadge rol={u.rol} /></td>
                     <td style={tdStyle}><span style={{ fontSize: 12, color: C.gray }}>{u.email}</span></td>
                     <td style={tdStyle}>
-                      <button onClick={() => toggleActivo(u.id)} style={{ background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626', border: 'none', borderRadius: 12, padding: '3px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 'bold' }}>
+                      <button
+                        onClick={() => toggleActivo(u.id)}
+                        style={{ background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626', border: 'none', borderRadius: 12, padding: '3px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 'bold' }}
+                      >
                         {u.activo ? 'Activo' : 'Inactivo'}
                       </button>
                     </td>
@@ -138,12 +175,12 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
       {subTab === 'configuracion' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {[
-            { label: 'Gestión Activa', valor: 'I/2026', desc: 'Periodo académico actual' },
-            { label: 'Carrera', valor: 'Ing. de Sistemas', desc: 'Unidad académica' },
+            { label: 'Gestión Activa',    valor: 'I/2026',                          desc: 'Periodo académico actual' },
+            { label: 'Carrera',           valor: 'Ing. de Sistemas',                desc: 'Unidad académica' },
             { label: 'Semestres Activos', valor: '3°, 4°, 5°, 6°, 7°, 8°, 9°, 10°', desc: 'Semestres en el sistema' },
-            { label: 'Horario', valor: '07:45 – 14:15', desc: 'Rango de clases diario' },
-            { label: 'Periodos por día', valor: '8 periodos + 2 recesos', desc: 'Estructura de la jornada' },
-            { label: 'Reglamento', valor: 'RAC-03', desc: 'Normativa aplicada' },
+            { label: 'Horario',           valor: '07:45 – 14:15',                   desc: 'Rango de clases diario' },
+            { label: 'Periodos por día',  valor: '8 periodos + 2 recesos',           desc: 'Estructura de la jornada' },
+            { label: 'Reglamento',        valor: 'RAC-03',                           desc: 'Normativa aplicada' },
           ].map(c => (
             <div key={c.label} style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: '14px 18px' }}>
               <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>{c.desc}</div>
@@ -155,28 +192,40 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
       )}
 
       {modal !== null && (
-        <FormModal titulo={modal.id ? 'Editar Usuario' : 'Nuevo Usuario'} onClose={() => setModal(null)} onGuardar={() => guardarUsuario(modal)}>
-          <FormField label="Nombre Completo"><input value={modal.nombre} onChange={e => setModal(m => ({ ...m, nombre: e.target.value }))} style={inputStyle} /></FormField>
+        <FormModal
+          titulo={modal.id ? 'Editar Usuario' : 'Nuevo Usuario'}
+          onClose={() => setModal(null)}
+          onGuardar={() => guardarUsuario(modal)}
+        >
+          <FormField label="Nombres">
+            <input value={modal.nombres || ''} onChange={e => setModal(m => ({ ...m, nombres: e.target.value }))} style={inputStyle} />
+          </FormField>
+          <FormField label="Apellidos">
+            <input value={modal.apellidos || ''} onChange={e => setModal(m => ({ ...m, apellidos: e.target.value }))} style={inputStyle} />
+          </FormField>
           <FormField label="Rol">
             <select value={modal.rol} onChange={e => setModal(m => ({ ...m, rol: e.target.value }))} style={inputStyle}>
               {ROLES.map(r => <option key={r}>{r}</option>)}
             </select>
           </FormField>
-          {modal.id ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <FormField label="Usuario"><input value={modal.usuario} onChange={e => setModal(m => ({ ...m, usuario: e.target.value }))} style={inputStyle} /></FormField>
-              <FormField label="Contrase?a"><input type="password" value={modal.password} onChange={e => setModal(m => ({ ...m, password: e.target.value }))} style={inputStyle} /></FormField>
-            </div>
-          ) : (
-            <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 8, padding: 10, fontSize: 12, color: C.gray }}>
-              Al guardar se generar?n autom?ticamente el usuario y la clave temporal a partir del nombre y rol.
-            </div>
-          )}
-          <FormField label="Email Institucional"><input value={modal.email} onChange={e => setModal(m => ({ ...m, email: e.target.value }))} style={inputStyle} /></FormField>
-          <FormField label="Asociar con Docente (HU-08)">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label="Usuario">
+              <input value={modal.usuario || ''} onChange={e => setModal(m => ({ ...m, usuario: e.target.value }))} style={inputStyle} />
+            </FormField>
+            <FormField label="Contraseña">
+              <input type="password" value={modal.password || ''} onChange={e => setModal(m => ({ ...m, password: e.target.value }))} style={inputStyle} />
+            </FormField>
+          </div>
+          <FormField label="CI">
+            <input value={modal.ci || ''} onChange={e => setModal(m => ({ ...m, ci: e.target.value }))} style={inputStyle} />
+          </FormField>
+          <FormField label="Email Institucional">
+            <input value={modal.email || ''} onChange={e => setModal(m => ({ ...m, email: e.target.value }))} style={inputStyle} />
+          </FormField>
+          <FormField label="Asociar con Docente">
             <select value={modal.docenteId || ''} onChange={e => setModal(m => ({ ...m, docenteId: e.target.value || null }))} style={inputStyle}>
               <option value="">Sin docente asociado</option>
-              {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+              {docentes.map(d => <option key={d.id} value={d.id}>{d.nombres} {d.apellidos}</option>)}
             </select>
           </FormField>
           <FormField label="Estado">
@@ -192,7 +241,12 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
 }
 
 export function RolBadge({ rol }) {
-  const colors = { 'Administrador': [C.navy, C.gold], 'Jefe de Carrera': [C.green, '#dcfce7'], 'DDE': [C.blue, C.blueLight], 'Docente': [C.gray, C.grayLight] };
+  const colors = {
+    'Administrador':    [C.navy, C.gold],
+    'Jefe de Carrera':  [C.green, '#dcfce7'],
+    'DDE':              [C.blue, C.blueLight],
+    'Docente':          [C.gray, C.grayLight]
+  };
   const [bg, fg] = colors[rol] || [C.gray, C.grayLight];
   return <span style={{ background: fg, color: bg, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 'bold' }}>{rol}</span>;
 }

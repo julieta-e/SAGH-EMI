@@ -214,6 +214,7 @@ export function Mod3GeneradorView({ materias, docentes, aulas, onFinish }) {
   );
 }
 
+
 // ==========================================
 // MOD-4: GESTIÓN DE HORARIOS
 // ==========================================
