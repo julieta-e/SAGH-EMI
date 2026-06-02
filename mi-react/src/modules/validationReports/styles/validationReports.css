@@ -16,36 +16,6 @@
   color: #334155;
 }
 
-/* Selector de roles */
-.institutional-role-selector {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #f1f5f9;
-  border-left: 4px solid var(--sagh-navy);
-  padding: 10px 16px;
-  border-radius: 6px;
-  margin-bottom: 16px;
-}
-.selector-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--sagh-navy); }
-.selector-actions { display: flex; gap: 6px; }
-.switch-role-btn {
-  background: white;
-  border: 1px solid #cbd5e1;
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.switch-role-btn:hover { background-color: #f8fafc; }
-.switch-role-btn.active {
-  background-color: var(--sagh-navy);
-  color: white;
-  border-color: var(--sagh-navy);
-}
-
 /* Banner de flujo */
 .institutional-workflow-banner {
   border-radius: 12px;
@@ -58,7 +28,6 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 .institutional-workflow-banner.state-borrador { background: linear-gradient(135deg, #1e293b, #334155); }
-.institutional-workflow-banner.state-en_revision { background: linear-gradient(135deg, #b45309, #d97706); }
 .institutional-workflow-banner.state-aprobado { background: linear-gradient(135deg, #14532d, #166534); }
 .banner-left-side { display: flex; align-items: center; gap: 14px; }
 .banner-title { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
@@ -78,7 +47,6 @@
 }
 .workflow-trigger-btn:hover { opacity: 0.9; }
 .workflow-trigger-btn:disabled { background-color: #94a3b8; color: #cbd5e1; cursor: not-allowed; }
-.btn-gold { background-color: var(--sagh-gold); color: white; }
 .btn-success { background-color: var(--sagh-success); color: white; }
 .btn-danger { background-color: var(--sagh-danger); color: white; }
 .immutable-badge {
@@ -125,9 +93,6 @@
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
-.pending-state-lockout { text-align: center; padding: 40px 20px; max-width: 500px; margin: 0 auto; }
-.lockout-icon { color: #94a3b8; margin-bottom: 16px; animation: pulse 2s infinite; }
-@keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 .metrics-dashboard-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -194,14 +159,9 @@
 .observations-workspace-grid { display: flex; flex-direction: column; gap: 20px; }
 .input-inline-flex-row { display: flex; gap: 8px; }
 .add-obs-submit-btn { border: none; padding: 0 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; background-color: var(--sagh-navy); color: white; }
-.observations-split-display { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.obs-bucket { display: flex; flex-direction: column; gap: 10px; }
-.bucket-title { font-size: 12px; font-weight: 700; color: var(--sagh-navy); margin: 0 0 4px; }
-.institutional-comment-pill { border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.4; }
-.institutional-comment-pill.internally { background-color: #fffde7; border: 1px solid #fef08a; color: #713f12; }
-.institutional-comment-pill.teacher-sent { background-color: var(--sagh-bg-panel); border: 1px solid var(--border-subtle); color: #334155; }
+.institutional-comment-pill { border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.4; background-color: var(--sagh-bg-panel); border: 1px solid var(--border-subtle); }
 .comment-meta-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
-.text-gold { color: var(--sagh-gold); }
+.empty-disclaimer-text { font-size: 12px; color: #94a3b8; font-style: italic; }
 
 /* Trazabilidad */
 .timeline-stack-container { display: flex; flex-direction: column; gap: 8px; }
@@ -211,7 +171,6 @@
 .event-user { color: #64748b; margin-right: 12px; }
 .event-badge-pill { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: auto; }
 .event-badge-pill.state-borrador { background-color: #e2e8f0; color: #475569; }
-.event-badge-pill.state-en_revision { background-color: #fef3c7; color: #b45309; }
 .event-badge-pill.state-aprobado { background-color: #dcfce7; color: #15803d; }
 
 /* Notificaciones */
