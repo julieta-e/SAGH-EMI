@@ -16,6 +16,8 @@ export const INIT_USUARIOS = [
   { id: 'u1', nombre: 'Administrador SAGH', usuario: 'admin', password: 'emi123', rol: 'Administrador', email: 'admin@emi.edu.bo', activo: true, docenteId: null },
   { id: 'u2', nombre: 'Cap. Frank Silvestre', usuario: 'jefe.carrera', password: 'jefe123', rol: 'Jefe de Carrera', email: 'fsilvestre@emi.edu.bo', activo: true, docenteId: null },
   { id: 'u3', nombre: 'Secretaría DDE', usuario: 'dde', password: 'dde123', rol: 'DDE', email: 'dde@emi.edu.bo', activo: true, docenteId: null },
+  // ✅ NUEVO USUARIO DOCENTE – vinculado al docente con id 'd1' (Ing. Carlos Mendoza)
+  { id: 'u4', nombre: 'Ing. Carlos Mendoza', usuario: 'docente', password: 'docente123', rol: 'Docente', email: 'cmendoza@emi.edu.bo', activo: true, docenteId: 'd1' },
 ];
 
 export const ROLES = ['Administrador', 'Jefe de Carrera', 'DDE', 'Docente'];
@@ -121,18 +123,27 @@ export const INIT_MATERIAS = [
   { id: 'm10_5', nombre: 'Geopolítica', semestre: 10, periodos: 4, docenteId: 'd4', tipoAula: 'Aula', critica: false },
 ];
 
-export const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+// ==========================================
+// CONSTANTES PARA EL MÓDULO DE HORARIOS (ScheduleManagement)
+// ==========================================
+
+// Semestres disponibles (de 3ro a 10mo)
+export const SEMESTRES_DEFAULT = [3, 4, 5, 6, 7, 8, 9, 10];
+
+// Días de la semana en mayúsculas (como espera el componente)
+export const DIAS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES'];
+
+// Bloques horarios: 8 períodos de clase (0..7) + recesos en slots 2 y 4 (índices internos)
+// El componente ScheduleManagement usa RENDER_SLOTS con propiedades: idx, inicio, fin, type
 export const RENDER_SLOTS = [
-  { type: 'class', idx: 0, inicio: '07:45', fin: '08:30' },
-  { type: 'class', idx: 1, inicio: '08:30', fin: '09:15' },
-  { type: 'class', idx: 2, inicio: '09:15', fin: '10:00' },
-  { type: 'break', label: 'Receso', inicio: '10:00', fin: '10:15' },
-  { type: 'class', idx: 3, inicio: '10:15', fin: '11:00' },
-  { type: 'class', idx: 4, inicio: '11:00', fin: '11:45' },
-  { type: 'break', label: 'Receso', inicio: '11:45', fin: '12:00' },
-  { type: 'class', idx: 5, inicio: '12:00', fin: '12:45' },
-  { type: 'class', idx: 6, inicio: '12:45', fin: '13:30' },
-  { type: 'class', idx: 7, inicio: '13:30', fin: '14:15' },
+  { idx: 0, inicio: '07:45', fin: '09:15', type: 'class' },
+  { idx: 1, inicio: '09:15', fin: '10:45', type: 'class' },
+  { idx: 2, inicio: '10:45', fin: '11:15', type: 'break', label: 'RECESO' },
+  { idx: 3, inicio: '11:15', fin: '12:45', type: 'class' },
+  { idx: 4, inicio: '12:45', fin: '14:15', type: 'break', label: 'RECESO' },
+  { idx: 5, inicio: '14:15', fin: '15:45', type: 'class' },
+  { idx: 6, inicio: '15:45', fin: '17:15', type: 'class' },
+  { idx: 7, inicio: '17:15', fin: '18:00', type: 'break', label: 'RECESO' },
+  { idx: 8, inicio: '18:00', fin: '19:30', type: 'class' },
+  { idx: 9, inicio: '19:30', fin: '21:00', type: 'class' },
 ];
-
-

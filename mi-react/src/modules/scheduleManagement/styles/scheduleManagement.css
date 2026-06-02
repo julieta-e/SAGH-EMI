@@ -105,7 +105,7 @@
 .conflict-pill  { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:7px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; animation:slow-pulse 2s ease-in-out infinite; }
 .alert-icon-pulse { animation: slow-pulse 1.8s ease-in-out infinite; }
 
-/* ── Panel de Observaciones Flotante (JefeCarrera y Docente) ─────────────── */
+/* ── Panel de Observaciones Flotante (burbuja) ─────────────────────────────── */
 .obs-flotante-wrapper {
   position: fixed;
   bottom: 28px;
@@ -116,7 +116,6 @@
   align-items: flex-end;
   gap: 12px;
 }
-
 .obs-flotante-panel {
   width: 360px;
   max-height: 520px;
@@ -128,7 +127,6 @@
   overflow: hidden;
   animation: obs-float-in .28s cubic-bezier(.34,1.56,.64,1);
 }
-
 .obs-flotante-trigger {
   width: 56px;
   height: 56px;
@@ -166,57 +164,7 @@
   animation: badge-pop .3s ease-out;
   border: 2px solid white;
 }
-
-/* ── Panel lateral de Observaciones (versión antigua, mantenida para compatibilidad) ── */
-.obs-panel {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 320px;
-  max-height: 80vh;
-  background: white;
-  border-radius: 20px 0 0 20px;
-  box-shadow: -8px 0 40px rgba(15,36,68,.18);
-  border-left: 4px solid var(--sagh-navy);
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  animation: obs-slide-in .3s ease-out;
-  overflow: hidden;
-}
-.obs-panel-collapsed {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 200;
-  animation: obs-slide-in .3s ease-out;
-}
-.obs-trigger-btn {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  padding: 16px 10px;
-  background: var(--sagh-navy);
-  color: var(--sagh-gold);
-  border: none;
-  border-radius: 12px 0 0 12px;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .15em;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: -4px 0 16px rgba(15,36,68,.2);
-  transition: background .15s;
-}
-.obs-trigger-btn:hover { background: #1a3560; }
-
-/* ── Mapa de aulas ───────────────────────────────────────────────────────── */
+/* ── Aula map cards ───────────────────────────────────────────────────────── */
 .aula-card {
   border: 2px solid #e2e8f0;
   border-radius: 14px;
@@ -224,19 +172,11 @@
   background: white;
   cursor: pointer;
   transition: all .2s ease;
-  position: relative;
 }
 .aula-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15,36,68,.12); }
 .aula-card.occupied  { border-color: #93c5fd; background: #eff6ff; }
 .aula-card.selected  { border-color: var(--sagh-gold); background: var(--sagh-gold-light); box-shadow: 0 0 0 3px rgba(200,168,75,.2); }
 .aula-card.free      { border-color: #bbf7d0; background: #f0fdf4; }
-
-/* ── Aula card con semestres asignados (vista mejorada) ──────────────────── */
-.aula-card-semestres {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 .aula-sem-chip {
   display: inline-flex;
   align-items: center;
@@ -250,8 +190,6 @@
 }
 .aula-sem-chip.asignado  { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
 .aula-sem-chip.libre     { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-
-/* ─── Pasillo ────────────────────────────────────────────────────────────── */
 .campus-pasillo {
   display: flex;
   align-items: center;
@@ -267,8 +205,6 @@
   padding: 8px 4px;
   min-height: 120px;
 }
-
-/* ── Botón reasignar aula ─────────────────────────────────────────────────── */
 .btn-reasignar-aula {
   padding: 6px 12px;
   border-radius: 8px;
@@ -293,19 +229,12 @@
   color: var(--sagh-navy);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   @media print
-   ═══════════════════════════════════════════════════════════════════════════ */
 @media print {
   body * { visibility: hidden; }
   .schedule-management-module, .print-container, .print-container * { visibility: visible; }
   .print-container { position:absolute; inset:0; width:100%!important; border:1px solid var(--sagh-navy)!important; }
   .no-print,
-  .obs-panel,
-  .obs-panel-collapsed,
-  .obs-flotante-wrapper,
-  [class*="edit-banner"],
-  [class*="conflict-panel"] { display:none!important; visibility:hidden!important; }
+  .obs-flotante-wrapper { display:none!important; visibility:hidden!important; }
   table { page-break-inside:avoid; width:100%!important; }
   .bg-white,[class*="rounded"] { background-color:#fff!important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   td[style*="background"] { -webkit-print-color-adjust:exact; print-color-adjust:exact; }

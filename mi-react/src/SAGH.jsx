@@ -12,15 +12,11 @@ import { Mod5ValidacionView } from './modules/validationReports/components/Valid
 import { Mod6ReportesView } from './modules/reports/components/Reports';
 import './shared/styles/base.css';
 
-// ==========================================
-// APP PRINCIPAL
-// ==========================================
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [activeTab, setActiveTab] = useState('mod1');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Estado global
   const [usuarios, setUsuarios] = useState(INIT_USUARIOS);
   const [docentes, setDocentes] = useState(INIT_DOCENTES);
   const [materias, setMaterias] = useState(INIT_MATERIAS);
@@ -28,7 +24,7 @@ export default function App() {
   const [grupos, setGrupos] = useState(INIT_GRUPOS);
   const [horarioData, setHorarioData] = useState(null);
   const [horasDocData, setHorasDocData] = useState(null);
-  const [estadoHorario, setEstadoHorario] = useState(null); // null | 'pendiente' | 'aprobado'
+  const [estadoHorario, setEstadoHorario] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [notificaciones, setNotificaciones] = useState([]);
 
@@ -41,7 +37,7 @@ export default function App() {
     setHorarioData(horario);
     setHorasDocData(horas);
     setEstadoHorario('pendiente');
-    const entry = { id: Date.now(), accion: 'Horario generado', usuario: usuario?.nombre, fecha: new Date().toLocaleString(), estado: 'pendiente' };
+    const entry = { id: Date.now(), accion: 'Horario generado', usuario: usuario?.nombre, fecha: new Date().toLocaleString(), estado: 'pendiente' }; // ✅ .toLocaleString (corregido)
     setHistorial(prev => [entry, ...prev]);
     addNotif('Horario generado — pendiente de validación', 'warning');
     setActiveTab('mod4');
@@ -78,8 +74,6 @@ export default function App() {
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Georgia', serif", position: 'fixed', inset: 0 }}>
       <GlobalStyles />
-
-      {/* SIDEBAR */}
       <aside style={{ width: sidebarOpen ? 230 : 56, background: C.navy, color: 'white', display: 'flex', flexDirection: 'column', transition: 'width 0.25s', flexShrink: 0, overflow: 'hidden' }}>
         <div style={{ padding: '12px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 58 }}>
           {sidebarOpen && (
@@ -92,7 +86,6 @@ export default function App() {
             <Menu size={16} />
           </button>
         </div>
-
         {sidebarOpen && (
           <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', fontSize: 11 }}>
             <div style={{ color: '#94a3b8' }}>Sesión activa</div>
@@ -100,7 +93,6 @@ export default function App() {
             <span style={{ background: 'rgba(200,168,75,0.2)', color: C.gold, fontSize: 10, padding: '1px 8px', borderRadius: 10 }}>{usuario.rol}</span>
           </div>
         )}
-
         <nav style={{ flex: 1, padding: '6px 0', overflowY: 'auto' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
@@ -118,7 +110,6 @@ export default function App() {
             </button>
           ))}
         </nav>
-
         <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           {sidebarOpen && estadoHorario && (
             <div style={{ background: estadoHorario === 'aprobado' ? 'rgba(22,101,52,0.3)' : 'rgba(200,168,75,0.15)', border: `1px solid ${estadoHorario === 'aprobado' ? '#16a34a' : C.gold}`, borderRadius: 6, padding: '5px 8px', marginBottom: 8, fontSize: 10, color: estadoHorario === 'aprobado' ? '#4ade80' : C.gold, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -132,10 +123,7 @@ export default function App() {
           </button>
         </div>
       </aside>
-
-      {/* MAIN */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Header */}
         <header style={{ background: 'white', padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${C.gold}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 3, height: 18, background: C.gold, borderRadius: 2 }} />
@@ -150,12 +138,25 @@ export default function App() {
             </div>
           </div>
         </header>
-
         <div style={{ flex: 1, overflow: 'auto', padding: 20 }} className="fade-in">
           {activeTab === 'mod1' && <Mod1AdminView usuarios={usuarios} setUsuarios={setUsuarios} docentes={docentes} materias={materias} aulas={aulas} grupos={grupos} horarioData={horarioData} estadoHorario={estadoHorario} historial={historial} addNotif={addNotif} onNavigate={setActiveTab} />}
           {activeTab === 'mod2' && <Mod2GestionAcadView docentes={docentes} setDocentes={setDocentes} materias={materias} setMaterias={setMaterias} aulas={aulas} setAulas={setAulas} grupos={grupos} setGrupos={setGrupos} />}
           {activeTab === 'mod3' && <Mod3GeneradorView materias={materias} docentes={docentes} aulas={aulas} onFinish={onHorarioGenerado} />}
-          {activeTab === 'mod4' && <Mod4HorariosView horario={horarioData} docentes={docentes} aulas={aulas} materias={materias} estadoHorario={estadoHorario} onCambio={onHorarioCambiado} />}
+          {activeTab === 'mod4' && (
+            <Mod4HorariosView
+              horario={horarioData}
+              docentes={docentes}
+              aulas={aulas}
+              materias={materias}
+              grupos={grupos}
+              estadoHorario={estadoHorario}
+              onCambio={onHorarioCambiado}
+              setGrupos={setGrupos}
+              usuario={usuario}
+              onObservacion={(obs) => addNotif(`Observación: ${obs.texto.substring(0, 50)}`, 'info')}
+              SEMESTRES={[3,4,5,6,7,8,9,10]}
+            />
+          )}
           {activeTab === 'mod5' && <Mod5ValidacionView horario={horarioData} docentes={docentes} horasDoc={horasDocData} estado={estadoHorario} onAprobar={onAprobar} onVerHorario={() => setActiveTab('mod4')} historial={historial} addNotif={addNotif} />}
           {activeTab === 'mod6' && <Mod6ReportesView horario={horarioData} docentes={docentes} materias={materias} aulas={aulas} grupos={grupos} horasDoc={horasDocData} estadoHorario={estadoHorario} addNotif={addNotif} usuario={usuario} />}
         </div>
