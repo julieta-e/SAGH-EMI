@@ -1,5 +1,9 @@
 import { DIAS } from '../../../shared/constants';
 
+/**
+ * Motor de Validación Avanzada - MOD-5 (Restricciones RAC-03 EMI)
+ * Sincroniza códigos de error en minúsculas y calcula dinámicamente descansos y franjas.
+ */
 export const validarHorario = (horario, docentes) => {
   const conflictos = [];
   const ocupacionDocentes = {};
