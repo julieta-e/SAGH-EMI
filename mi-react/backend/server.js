@@ -21,7 +21,7 @@ app.use(helmet({
 }));
 
 // CAPTURA 2: CORS configurado
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors()); // permite cualquier origen (solo desarrollo)
 app.use(express.json());
 
 // CAPTURA 3: Rate Limiting
