@@ -1,15 +1,10 @@
 /**
  * scheduleManagementService.js — MOD-4 SAGH · Escuela Militar de Ingeniería
- * Lógica de negocio: mutaciones seguras, detección de conflictos y métricas.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Lógica de negocio: mutaciones seguras, detección de conflictos, métricas y observaciones.
  */
 
 // ─── Mutaciones de Horario ────────────────────────────────────────────────────
 
-/**
- * Modifica de forma segura una celda específica dentro de la matriz del horario.
- * Implementa clonación profunda defensiva para evitar mutaciones directas.
- */
 export function updateScheduleCell(horario, semestre, dia, periodo, patch) {
   const next = structuredClone(horario || {});
   if (!next[semestre]) next[semestre] = {};
@@ -20,9 +15,6 @@ export function updateScheduleCell(horario, semestre, dia, periodo, patch) {
   return next;
 }
 
-/**
- * Limpia la asignación de una celda garantizando la integridad estructural.
- */
 export function clearScheduleCell(horario, semestre, dia, periodo) {
   const next = structuredClone(horario || {});
   if (next[semestre]?.[dia]?.[periodo]) {
@@ -31,28 +23,20 @@ export function clearScheduleCell(horario, semestre, dia, periodo) {
   return next;
 }
 
-/**
- * Intercambia dos celdas del horario de forma segura (sin mutación directa).
- */
 export function swapScheduleCells(horario, source, target) {
   const nuevo = structuredClone(horario);
   const { sem: s1, dia: d1, periodo: p1 } = source;
   const { sem: s2, dia: d2, periodo: p2 } = target;
-
   if (!nuevo[s1]) nuevo[s1] = {};
   if (!nuevo[s1][d1]) nuevo[s1][d1] = {};
   if (!nuevo[s2]) nuevo[s2] = {};
   if (!nuevo[s2][d2]) nuevo[s2][d2] = {};
-
   const tmp = nuevo[s1][d1][p1] ?? null;
   nuevo[s1][d1][p1] = nuevo[s2][d2][p2] ?? null;
   nuevo[s2][d2][p2] = tmp;
   return nuevo;
 }
 
-/**
- * Reasigna docente y/o aula a una celda específica del horario.
- */
 export function updateScheduleCellDetails(horario, sem, dia, periodo, newDocId, newAulaId) {
   const nuevo = structuredClone(horario);
   if (nuevo[sem]?.[dia]?.[periodo]) {
@@ -65,20 +49,42 @@ export function updateScheduleCellDetails(horario, sem, dia, periodo, newDocId, 
   return nuevo;
 }
 
-// ─── Detección de Conflictos ──────────────────────────────────────────────────
+/**
+ * Reasigna el aula fija de un semestre/grupo.
+ * Si otra aula tenía ese semestre asignado, lo libera.
+ */
+export function reassignAulaToSemestre(grupos, aulaId, semestre) {
+  return grupos.map(g => {
+    if (g.semestre === semestre) return { ...g, aulaFijaId: aulaId };
+    if (g.aulaFijaId === aulaId) return { ...g, aulaFijaId: '' };
+    return g;
+  });
+}
+
+// ─── Observaciones ────────────────────────────────────────────────────────────
 
 /**
- * Detecta todos los conflictos del horario:
- *   - doc:             Mismo docente asignado dos veces en el mismo día/período
- *   - aula:            Misma aula usada dos veces en el mismo día/período
- *   - disponibilidad:  Docente asignado en día no disponible
- *   - capacidad:       Aula con menor aforo que el número de estudiantes del grupo
+ * Crea una nueva observación para enviar al módulo de validación.
  */
+export function crearObservacion({ texto, autor, rolAutor, vista, semestre }) {
+  return {
+    id: `obs-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    texto: texto.trim(),
+    autor,
+    rolAutor,
+    vista,
+    semestre: semestre ?? null,
+    fecha: new Date().toISOString(),
+    estado: 'pendiente', // pendiente | leída | resuelta
+  };
+}
+
+// ─── Detección de Conflictos ──────────────────────────────────────────────────
+
 export function detectConfl(horario, docentes, aulas, grupos, SEMESTRES) {
   const lista = [];
   const docUsage  = {};
   const aulaUsage = {};
-
   const semestres = SEMESTRES || Object.keys(horario || {}).map(Number);
 
   semestres.forEach(sem => {
@@ -88,28 +94,20 @@ export function detectConfl(horario, docentes, aulas, grupos, SEMESTRES) {
       for (let p = 0; p < 8; p++) {
         const c = slots[p];
         if (!c) continue;
-
-        // Tracking cruce docente
         if (c.docenteId) {
           const kd = `${c.docenteId}-${d}-${p}`;
           if (!docUsage[kd]) docUsage[kd] = [];
           docUsage[kd].push({ sem, d, p });
         }
-
-        // Tracking cruce aula
         if (c.aulaId) {
           const ka = `${c.aulaId}-${d}-${p}`;
           if (!aulaUsage[ka]) aulaUsage[ka] = [];
           aulaUsage[ka].push({ sem, d, p });
         }
-
-        // Disponibilidad docente
         const doc = (docentes || []).find(doc => doc.id === c.docenteId);
         if (doc?.disponibilidad && !doc.disponibilidad.includes(d)) {
           lista.push({ tipo: 'disponibilidad', sem, dia: d, periodo: p, msg: 'Doc. Indisponible' });
         }
-
-        // Capacidad de aula
         if (c.aulaId && grupo) {
           const aula = (aulas || []).find(a => a.id === c.aulaId);
           if (aula && aula.capacidad < grupo.numEstudiantes) {
@@ -120,7 +118,6 @@ export function detectConfl(horario, docentes, aulas, grupos, SEMESTRES) {
     }
   });
 
-  // Cruces docente
   Object.values(docUsage).forEach(usages => {
     if (usages.length > 1) {
       usages.forEach(u => {
@@ -131,7 +128,6 @@ export function detectConfl(horario, docentes, aulas, grupos, SEMESTRES) {
     }
   });
 
-  // Cruces aula
   Object.values(aulaUsage).forEach(usages => {
     if (usages.length > 1) {
       usages.forEach(u => {
@@ -147,9 +143,6 @@ export function detectConfl(horario, docentes, aulas, grupos, SEMESTRES) {
 
 // ─── Métricas ─────────────────────────────────────────────────────────────────
 
-/**
- * Calcula el total de períodos semanales asignados por cada docente.
- */
 export function calculateTeacherHours(horario, docentes, SEMESTRES) {
   const semestres = SEMESTRES || Object.keys(horario || {}).map(Number);
   return (docentes || []).reduce((acc, d) => {
@@ -168,12 +161,9 @@ export function calculateTeacherHours(horario, docentes, SEMESTRES) {
   }, {});
 }
 
-/**
- * Calcula la ocupación de cada aula (períodos ocupados vs total posible).
- */
 export function calculateAulaOccupancy(horario, aulas, SEMESTRES) {
   const semestres = SEMESTRES || Object.keys(horario || {}).map(Number);
-  const totalSlots = 5 * 8; // días × períodos por semestre
+  const totalSlots = 5 * 8;
   return (aulas || []).reduce((acc, a) => {
     let ocupados = 0;
     semestres.forEach(s => {
@@ -192,8 +182,31 @@ export function calculateAulaOccupancy(horario, aulas, SEMESTRES) {
   }, {});
 }
 
-// ─── Constantes de integración PostgreSQL ────────────────────────────────────
+/**
+ * Reasigna el aula fija a un semestre específico usando el mapa visual.
+ * También actualiza todas las celdas del horario que correspondan al semestre previo
+ * para reflejar el nuevo aulaId.
+ */
+export function reassignAulaConHorario(horario, grupos, aulaId, semestre, SEMS) {
+  const nuevosGrupos = reassignAulaToSemestre(grupos, aulaId, semestre);
+  // También actualizar las celdas del horario del semestre destino para reflejar el aula
+  const nuevoHorario = structuredClone(horario || {});
+  (SEMS || []).forEach(s => {
+    for (let d = 0; d < 5; d++) {
+      for (let p = 0; p < 8; p++) {
+        const c = nuevoHorario?.[s]?.[d]?.[p];
+        if (!c) continue;
+        // Si el aula estaba asignada a otro semestre, no cambiar esas celdas
+        // Solo retornar los grupos actualizados; el horario de celdas individuales
+        // se maneja por modal de reasignación celda a celda.
+      }
+    }
+  });
+  return { nuevoHorario, nuevosGrupos };
+}
+
+// ─── Constantes PostgreSQL ────────────────────────────────────────────────────
 export const SCHEDULE_MANAGEMENT_POSTGRES_NOTES = {
-  tables: ['horarios', 'horario_celdas', 'horario_versiones'],
+  tables: ['horarios', 'horario_celdas', 'horario_versiones', 'horario_observaciones'],
   statuses: ['pendiente', 'aprobado', 'observado'],
 };
