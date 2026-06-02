@@ -2,11 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 router.post('/login', async (req, res) => {
   const { usuario, password } = req.body;
-console.log('Recibido:', usuario, password);
-
   try {
     const result = await pool.query(
       'SELECT * FROM usuarios WHERE username = $1 AND estado = true',
@@ -15,21 +14,26 @@ console.log('Recibido:', usuario, password);
     const user = result.rows[0];
     if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
 
-    if (user.password_hash !== password)
+    // Verificar con bcrypt
+    const passwordValida = await bcrypt.compare(password, user.password_hash);
+    if (!passwordValida)
       return res.status(401).json({ error: 'Contraseña incorrecta' });
 
+    let rol = user.rol;
+    if (usuario.endsWith('@doc.emi.edu.bo')) rol = 'Docente';
+
     const token = jwt.sign(
-      { id: user.id_usuario, rol: user.rol, nombre: user.nombres + ' ' + user.apellidos },
+      { id: user.id_usuario, rol, nombre: user.nombres + ' ' + user.apellidos },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
-console.log('Usuario encontrado:', result.rows[0]); // ← y esta
+
     res.json({
       token,
       usuario: {
         id: user.id_usuario,
         nombre: user.nombres + ' ' + user.apellidos,
-        rol: user.rol,
+        rol,
         email: user.correo
       }
     });

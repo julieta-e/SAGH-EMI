@@ -197,6 +197,20 @@ export function Mod1AdminView({ usuarios, setUsuarios, docentes, materias, aulas
           onClose={() => setModal(null)}
           onGuardar={() => guardarUsuario(modal)}
         >
+          // Cuando cambia el rol a Docente, sugerir el formato de username
+<FormField label="Usuario">
+  <input 
+    value={modal.usuario || ''} 
+    onChange={e => setModal(m => ({ ...m, usuario: e.target.value }))} 
+    style={inputStyle}
+    placeholder={modal.rol === 'Docente' ? 'ej: apellidonombre@doc.emi.edu.bo' : 'usuario'}
+  />
+  {modal.rol === 'Docente' && (
+    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+      Los docentes deben usar el formato: <strong>apellidonombre@doc.emi.edu.bo</strong>
+    </div>
+  )}
+</FormField>
           <FormField label="Nombres">
             <input value={modal.nombres || ''} onChange={e => setModal(m => ({ ...m, nombres: e.target.value }))} style={inputStyle} />
           </FormField>
