@@ -60,15 +60,16 @@ export default function App() {
       setAulas(auls);
     }).catch(console.error);
 
-    fetch(`${API}/horarios/ultimo`)
+    // Cargar última versión de horario al iniciar sesión
+    fetch(`${API}/gestiones/versiones/ultima`)
       .then(r => r.json())
-      .then(h => {
-        if (h) {
-          setHorarioData(h.datos_horario);
-          setEstadoHorario(h.estado);
+      .then(v => {
+        if (v) {
+          setHorarioData(v.datos_horario);
+          setEstadoHorario(v.estado);
         }
       })
-      .catch(console.error);
+    .catch(console.error);
 
   }, [usuario]);
 
@@ -104,6 +105,7 @@ export default function App() {
     setHorarioData(horario);
     setHorasDocData(horas);
     setEstadoHorario('pendiente');
+
     const entry = {
       id: Date.now(),
       accion: 'Horario generado',
@@ -112,15 +114,21 @@ export default function App() {
       estado: 'pendiente'
     };
     setHistorial(prev => [entry, ...prev]);
+
+    // Guardar como nueva versión en la gestión activa
     try {
-      await fetch(`${API}/horarios`, {
+      await fetch(`${API}/gestiones/versiones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ periodo_academico: '2026-I', datos_horario: horario })
+        body: JSON.stringify({
+          datos_horario: horario,
+          generado_por: usuario?.nombre
+        })
       });
     } catch (err) {
-      console.error('Error guardando horario:', err);
+      console.error('Error guardando versión:', err);
     }
+
     addNotif('Horario generado — pendiente de validación', 'warning');
     setActiveTab('mod4');
   };

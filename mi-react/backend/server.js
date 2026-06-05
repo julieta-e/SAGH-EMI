@@ -5,7 +5,6 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const app = express();
 
-// CAPTURA 1: Cabeceras HTTP de seguridad
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -20,11 +19,9 @@ app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true },
 }));
 
-// CAPTURA 2: CORS configurado
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
-// CAPTURA 3: Rate Limiting
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -42,7 +39,7 @@ app.use('/api/horarios',      require('./routes/horarios'));
 app.use('/api/materias',      require('./routes/materias'));
 app.use('/api/aulas',         require('./routes/aulas'));
 app.use('/api/observaciones', require('./routes/observaciones'));
-
+app.use('/api/gestiones', require('./routes/gestiones'));
 
 app.listen(process.env.PORT || 3001, () =>
   console.log(`Backend corriendo en puerto ${process.env.PORT || 3001}`)
