@@ -366,17 +366,8 @@ export default function App() {
               onFinish={onHorarioGenerado}
             />
           )}
-          {activeTab === 'mod4' && (
-            <Mod4HorariosView
-              horario={horarioData} docentes={docentes} aulas={aulas}
-              materias={materias}   grupos={grupos}
-              estadoHorario={estadoHorario}
-              onCambio={onHorarioCambiado}
-              onObservacion={(obs) => addNotif(`Observación: ${obs.texto}`, 'info')}
-              setGrupos={setGrupos}
-              usuario={usuario}
-            />
-          )}
+          
+          {activeTab === 'mod4' && <Mod4HorariosView horario={horarioData} docentes={docentes} aulas={aulas} materias={materias} grupos={grupos} estadoHorario={estadoHorario} onCambio={onHorarioCambiado} setGrupos={setGrupos} usuario={usuario} onObservacion={(obs) => addNotif(obs.texto, 'info')} SEMESTRES={[3,4,5,6,7,8,9,10]} />}
           {activeTab === 'mod5' && (
             <Mod5ValidacionView
               horario={horarioData} docentes={docentes} horasDoc={horasDocData}
