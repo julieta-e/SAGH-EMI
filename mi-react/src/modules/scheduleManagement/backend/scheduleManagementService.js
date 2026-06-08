@@ -49,10 +49,6 @@ export function updateScheduleCellDetails(horario, sem, dia, periodo, newDocId, 
   return nuevo;
 }
 
-/**
- * Reasigna el aula fija de un semestre/grupo.
- * Si otra aula tenía ese semestre asignado, lo libera.
- */
 export function reassignAulaToSemestre(grupos, aulaId, semestre) {
   return grupos.map(g => {
     if (g.semestre === semestre) return { ...g, aulaFijaId: aulaId };
@@ -63,9 +59,6 @@ export function reassignAulaToSemestre(grupos, aulaId, semestre) {
 
 // ─── Observaciones ────────────────────────────────────────────────────────────
 
-/**
- * Crea una nueva observación para enviar al módulo de validación.
- */
 export function crearObservacion({ texto, autor, rolAutor, vista, semestre }) {
   return {
     id: `obs-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -75,7 +68,7 @@ export function crearObservacion({ texto, autor, rolAutor, vista, semestre }) {
     vista,
     semestre: semestre ?? null,
     fecha: new Date().toISOString(),
-    estado: 'pendiente', // pendiente | leída | resuelta
+    estado: 'pendiente',
   };
 }
 
@@ -182,30 +175,6 @@ export function calculateAulaOccupancy(horario, aulas, SEMESTRES) {
   }, {});
 }
 
-/**
- * Reasigna el aula fija a un semestre específico usando el mapa visual.
- * También actualiza todas las celdas del horario que correspondan al semestre previo
- * para reflejar el nuevo aulaId.
- */
-export function reassignAulaConHorario(horario, grupos, aulaId, semestre, SEMS) {
-  const nuevosGrupos = reassignAulaToSemestre(grupos, aulaId, semestre);
-  // También actualizar las celdas del horario del semestre destino para reflejar el aula
-  const nuevoHorario = structuredClone(horario || {});
-  (SEMS || []).forEach(s => {
-    for (let d = 0; d < 5; d++) {
-      for (let p = 0; p < 8; p++) {
-        const c = nuevoHorario?.[s]?.[d]?.[p];
-        if (!c) continue;
-        // Si el aula estaba asignada a otro semestre, no cambiar esas celdas
-        // Solo retornar los grupos actualizados; el horario de celdas individuales
-        // se maneja por modal de reasignación celda a celda.
-      }
-    }
-  });
-  return { nuevoHorario, nuevosGrupos };
-}
-
-// ─── Constantes PostgreSQL ────────────────────────────────────────────────────
 export const SCHEDULE_MANAGEMENT_POSTGRES_NOTES = {
   tables: ['horarios', 'horario_celdas', 'horario_versiones', 'horario_observaciones'],
   statuses: ['pendiente', 'aprobado', 'observado'],

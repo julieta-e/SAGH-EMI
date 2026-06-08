@@ -45,3 +45,4 @@ export const RENDER_SLOTS = [
   { type: 'class', idx: 6, inicio: '12:45', fin: '13:30' },
   { type: 'class', idx: 7, inicio: '13:30', fin: '14:15' },
 ];
+export const SEMESTRES_DEFAULT = [3,4,5,6,7,8,9,10];
